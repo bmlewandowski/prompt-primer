@@ -1,0 +1,21 @@
+{
+  "name": "@prompt-primer/fragments",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hierarchical YAML prompt fragment library",
+  "type": "module",
+  "scripts": {
+    "validate": "tsx scripts/validate.ts",
+    "generate-registry": "tsx scripts/generate-registry.ts"
+  },
+  "dependencies": {
+    "yaml": "^2.7.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@prompt-primer/compiler": "workspace:*",
+    "@types/node": "^22.15.21",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3"
+  }
+}

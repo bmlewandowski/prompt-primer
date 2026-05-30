@@ -1,0 +1,21 @@
+{
+  "name": "prompt-primer",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm --filter web dev",
+    "test": "pnpm -r test",
+    "validate-fragments": "pnpm --filter @prompt-primer/fragments validate",
+    "generate-registry": "pnpm --filter @prompt-primer/fragments generate-registry",
+    "sync-fabric": "tsx scripts/sync-fabric.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  }
+}

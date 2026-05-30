@@ -1,0 +1,29 @@
+id: task_spec_draft
+tier: task
+meta:
+  version: "1.0.0"
+  description: "Draft a functional specification document from a feature description"
+  tags: [spec, documentation, product, engineering]
+  author: product-leads
+  updated: "2026-05-28"
+  fabric_source: null
+depends_on: []
+blocks:
+  identity: null
+  context: null
+  steps: |
+    1. Extract the core user need from the input description.
+    2. Identify all actors (users, systems, external services) involved.
+    3. Define the happy path as a numbered step sequence.
+    4. Define at least three edge cases or error states.
+    5. List data inputs required and their validation rules.
+    6. List data outputs and their formats.
+    7. Identify open questions that need product or engineering decisions.
+    8. Draft acceptance criteria in Given/When/Then format.
+  rules:
+    - key: "output_format"
+      content: |
+        Structure the specification with these sections:
+        ## Overview, ## Actors, ## Happy Path, ## Edge Cases,
+        ## Data Contract, ## Open Questions, ## Acceptance Criteria.
+    - content: "Flag any ambiguity in the input as an Open Question rather than assuming."
