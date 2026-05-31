@@ -25,10 +25,10 @@ You can access starter packs at any time via the **Reset Library** button in the
 
 | Starter Pack | Best For | Includes |
 |--------------|----------|----------|
-| **Software Development Team** | Engineering teams | Backend, frontend, platform, QA, security fragments, code review tasks, <br>**Output:** HTML export |
-| **Product & Design Team** | Product managers & designers | Design, product management, UX, requirements fragments, <br>**Output:** HTML & DOCX export |
-| **Data & Analytics Team** | Data engineers & analysts | Data pipelines, analytics, schema design, quality fragments, <br>**Output:** CSV export |
-| **Full Organization** | Complete setup | All departments, teams, personas, and tasks, <br>**Output:** CSV, HTML, DOCX, ODF export |
+| **Software Development Team** | Engineering teams | Backend, frontend, platform, QA, security fragments, code review tasks, <br>**Output:** HTML, PDF |
+| **Product & Design Team** | Product managers & designers | Design, product management, UX, requirements fragments, <br>**Output:** HTML, DOCX, PDF |
+| **Data & Analytics Team** | Data engineers & analysts | Data pipelines, analytics, schema design, quality fragments, <br>**Output:** CSV, HTML |
+| **Full Organization** | Complete setup | All departments, teams, personas, and tasks, <br>**Output:** CSV, HTML, DOCX, PDF, ODF |
 | **Minimal Starter** | Clean slate | Only org defaults and basic personas |
 
 When you apply a starter pack:
@@ -300,10 +300,10 @@ deletes all fragments and shows the starter pack selector.
 
 | Starter Pack | Best For | Includes |
 |--------------|----------|----------|
-| **Software Development Team** | Engineering teams | Backend, frontend, platform, QA, security fragments + code review tasks |
-| **Product & Design Team** | Product managers & designers | Design, product management, UX, requirements fragments |
-| **Data & Analytics Team** | Data engineers & analysts | Data pipelines, analytics, schema design, quality fragments |
-| **Full Organization** | Complete setup | All departments, teams, personas, and tasks |
+| **Software Development Team** | Engineering teams | Backend, frontend, platform, QA, security fragments + code review tasks, <br>**Output:** HTML, PDF |
+| **Product & Design Team** | Product managers & designers | Design, product management, UX, requirements fragments, <br>**Output:** HTML, DOCX, PDF |
+| **Data & Analytics Team** | Data engineers & analysts | Data pipelines, analytics, schema design, quality fragments, <br>**Output:** CSV, HTML |
+| **Full Organization** | Complete setup | All departments, teams, personas, and tasks, <br>**Output:** CSV, HTML, DOCX, PDF, ODF |
 | **Minimal Starter** | Clean slate | Only org defaults and basic personas |
 
 When you apply a starter pack:

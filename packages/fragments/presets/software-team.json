@@ -23,6 +23,7 @@
     "persona/persona_security_reviewer.yaml",
     "task/custom/code_review.yaml",
     "task/custom/spec_draft.yaml",
-    "task/custom/output_html.yaml"
+    "task/custom/output_html.yaml",
+    "task/custom/output_pdf.yaml"
   ]
 }

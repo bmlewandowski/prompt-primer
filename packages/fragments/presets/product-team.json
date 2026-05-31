@@ -23,6 +23,7 @@
     "task/custom/accessibility_audit.yaml",
     "task/custom/user_research_plan.yaml",
     "task/custom/output_html.yaml",
-    "task/custom/output_docx.yaml"
+    "task/custom/output_docx.yaml",
+    "task/custom/output_pdf.yaml"
   ]
 }

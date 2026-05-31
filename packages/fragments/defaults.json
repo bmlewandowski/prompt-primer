@@ -27,7 +27,7 @@
       "label": "Tasks"
     }
   ],
-  "fragmentCount": 21,
+  "fragmentCount": 26,
   "fragments": [
     {
       "path": "department/design.yaml",
@@ -112,6 +112,26 @@
     {
       "path": "team/security.yaml",
       "content": "id: team_security\ntier: team\nmeta:\n  version: \"1.0.0\"\n  description: \"Security team — AppSec, threat modeling, and secure code review\"\n  tags: [security, appsec, threat-modeling, code-review, owasp]\n  author: security-team\n  updated: \"2026-05-30\"\n  fabric_source: null\ndepends_on: [global_default]\nblocks:\n  identity: |\n    You are an expert in application security, threat modeling, and secure code review.\n    You help teams identify, understand, and remediate security risks before they reach production.\n  context: null\n  steps: null\n  rules:\n    - content: \"Reference the OWASP Top 10 and relevant CVEs when identifying vulnerability classes.\"\n    - content: \"Never suggest security theater — flag controls that look protective but provide no real defense.\"\n    - content: \"Always consider authentication, authorization, input validation, and secrets management in every review.\"\n    - key: \"output_format\"\n      content: \"For each finding, state: vulnerability class, impact, evidence from the code, and a concrete remediation. Use severity labels (Critical / High / Medium / Low).\"\n"
+    },
+    {
+      "path": "task/custom/output_csv.yaml",
+      "content": "id: output_csv\ntier: task\nmeta:\n  version: \"1.0.0\"\n  description: \"Output results as a CSV table for easy import into spreadsheets or data tools.\"\n  tags: [output, csv, table, spreadsheet, data]\n  author: prompt-primer\n  updated: \"2026-05-31\"\n  fabric_source: null\ndepends_on: []\nblocks:\n  identity: null\n  context: null\n  steps: |\n    1. Organize the output as a table with clear column headers.\n    2. Ensure all rows have the same number of columns.\n    3. Escape commas and quotes as needed for CSV compatibility.\n  rules:\n    - key: output_format\n      content: |\n        Output the result as a valid CSV file. The first row must be column headers. Use UTF-8 encoding. Example:\n        \"Column 1\",\"Column 2\",\"Column 3\"\n        \"Value 1\",\"Value 2\",\"Value 3\"\n        Do not include any explanation or commentary outside the CSV.\n"
+    },
+    {
+      "path": "task/custom/output_html.yaml",
+      "content": "id: output_html\ntier: task\nmeta:\n  version: \"1.0.0\"\n  description: \"Output results as valid, semantic HTML for web or documentation use.\"\n  tags: [output, html, web, documentation]\n  author: prompt-primer\n  updated: \"2026-05-31\"\n  fabric_source: null\ndepends_on: []\nblocks:\n  identity: null\n  context: null\n  steps: |\n    1. Use semantic HTML elements (e.g., <table>, <ul>, <ol>, <section>, <article>) as appropriate for the content.\n    2. Ensure the output is valid HTML5 and can be copy-pasted into a web page or documentation.\n    3. Use <pre> for code blocks and <strong>/<em> for emphasis.\n  rules:\n    - key: output_format\n      content: |\n        Output the result as valid HTML. Do not include any explanation or commentary outside the HTML. Example:\n        <table>\n          <tr><th>Header 1</th><th>Header 2</th></tr>\n          <tr><td>Value 1</td><td>Value 2</td></tr>\n        </table>\n"
+    },
+    {
+      "path": "task/custom/output_docx.yaml",
+      "content": "id: output_docx\ntier: task\nmeta:\n  version: \"1.0.0\"\n  description: \"Output results formatted for easy import into Microsoft Word (.docx).\"\n  tags: [output, docx, word, document, office]\n  author: prompt-primer\n  updated: \"2026-05-31\"\n  fabric_source: null\ndepends_on: []\nblocks:\n  identity: null\n  context: null\n  steps: |\n    1. Structure the output with clear section headings (e.g., Introduction, Results, Conclusion).\n    2. Use bullet points, numbered lists, and tables as appropriate.\n    3. Avoid using features not supported by Word (e.g., advanced HTML/CSS).\n  rules:\n    - key: output_format\n      content: |\n        Output the result in a format that can be copy-pasted into Microsoft Word and retain structure. Use Markdown or simple HTML for tables and lists. Do not include any explanation or commentary outside the document content.\n"
+    },
+    {
+      "path": "task/custom/output_pdf.yaml",
+      "content": "id: task_output_pdf\ntier: task\nmeta:\n  version: \"1.0.0\"\n  description: \"Format output for PDF generation with print-optimized structure and layout\"\n  tags: [output, pdf, print, document]\n  author: prompt-primer\n  updated: \"2026-05-31\"\n  fabric_source: null\ndepends_on: []\nblocks:\n  identity: null\n  context: null\n  steps: null\n  rules:\n    - key: \"output_format\"\n      content: \"Output content optimized for PDF generation and printing. Use Markdown with clear hierarchical structure. Begin with a title page (# Title, followed by metadata like author, date, version). Use ## for major sections, ### for subsections. Keep line lengths reasonable (≤100 characters) for readability.\"\n    - content: \"Design for print constraints: assume A4/Letter page size, standard margins. Suggest page breaks before major sections with '--- PAGE BREAK ---'. Keep tables narrow enough to fit portrait orientation. Use landscape suggestions ('--- LANDSCAPE START ---' / '--- LANDSCAPE END ---') for wide content.\"\n    - content: \"Include a table of contents structure at the beginning by listing all major sections with page number placeholders. Add headers/footers suggestions: '--- HEADER: [text] ---' and '--- FOOTER: [text] ---'.\"\n    - content: \"Optimize images and diagrams for print: suggest placement with '[Image: description, suggested size]'. For code blocks, use syntax highlighting markers but keep font sizes readable (≥9pt equivalent).\"\n"
+    },
+    {
+      "path": "task/custom/output_odf.yaml",
+      "content": "id: output_odf\ntier: task\nmeta:\n  version: \"1.0.0\"\n  description: \"Output results compatible with OpenDocument Format (ODF) editors like LibreOffice Writer.\"\n  tags: [output, odf, libreoffice, openoffice, document]\n  author: prompt-primer\n  updated: \"2026-05-31\"\n  fabric_source: null\ndepends_on: []\nblocks:\n  identity: null\n  context: null\n  steps: |\n    1. Structure the output with clear section headings and lists.\n    2. Use simple tables and avoid proprietary formatting.\n    3. Ensure the output can be pasted into LibreOffice or OpenOffice and retain structure.\n  rules:\n    - key: output_format\n      content: |\n        Output the result in a format compatible with ODF editors. Use Markdown or simple HTML for tables and lists. Do not include any explanation or commentary outside the document content.\n"
     }
   ]
 }

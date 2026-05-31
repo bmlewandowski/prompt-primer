@@ -32,6 +32,7 @@
     "task/custom/output_csv.yaml",
     "task/custom/output_html.yaml",
     "task/custom/output_docx.yaml",
+    "task/custom/output_pdf.yaml",
     "task/custom/output_odf.yaml"
   ]
 }

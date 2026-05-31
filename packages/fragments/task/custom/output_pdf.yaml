@@ -1,0 +1,20 @@
+id: task_output_pdf
+tier: task
+meta:
+  version: "1.0.0"
+  description: "Format output for PDF generation with print-optimized structure and layout"
+  tags: [output, pdf, print, document]
+  author: prompt-primer
+  updated: "2026-05-31"
+  fabric_source: null
+depends_on: []
+blocks:
+  identity: null
+  context: null
+  steps: null
+  rules:
+    - key: "output_format"
+      content: "Output content optimized for PDF generation and printing. Use Markdown with clear hierarchical structure. Begin with a title page (# Title, followed by metadata like author, date, version). Use ## for major sections, ### for subsections. Keep line lengths reasonable (≤100 characters) for readability."
+    - content: "Design for print constraints: assume A4/Letter page size, standard margins. Suggest page breaks before major sections with '--- PAGE BREAK ---'. Keep tables narrow enough to fit portrait orientation. Use landscape suggestions ('--- LANDSCAPE START ---' / '--- LANDSCAPE END ---') for wide content."
+    - content: "Include a table of contents structure at the beginning by listing all major sections with page number placeholders. Add headers/footers suggestions: '--- HEADER: [text] ---' and '--- FOOTER: [text] ---'."
+    - content: "Optimize images and diagrams for print: suggest placement with '[Image: description, suggested size]'. For code blocks, use syntax highlighting markers but keep font sizes readable (≥9pt equivalent)."
