@@ -242,9 +242,9 @@ export default function BuilderPage() {
 
   const handleResetDefaults = () => {
     setConfirmDialog({
-      title: "Clear fragment library?",
+      title: "Reset fragment library?",
       message:
-        "This will delete all fragments and clear your library. Your saved selection and preferences will also be cleared. After reset, you can select a starter pack or build from scratch. This cannot be undone.",
+        "This will delete all current fragment YAML files and reset tiers.json to defaults. Your saved selection and preferences will also be cleared. After reset, you can select a starter pack to restore fragments from defaults.json (the factory template library). The defaults.json file is never modified, so you can always recover fragments by reapplying a starter pack.",
       onConfirm: async () => {
         setConfirmDialog(null);
         setIsLoading(true);
@@ -337,9 +337,9 @@ export default function BuilderPage() {
           <button
             onClick={handleResetDefaults}
             className="rounded border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-500 hover:bg-orange-900/60 hover:border-orange-700 hover:text-orange-300 transition-colors"
-            title="Clear all fragments from library"
+            title="Reset library to empty state (recoverable from defaults.json)"
           >
-            Clear Library
+            Reset Library
           </button>
           <button
             onClick={() => setShowManager(true)}

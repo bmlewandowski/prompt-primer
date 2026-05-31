@@ -74,10 +74,14 @@ export function FragmentEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showExtraBlocks, setShowExtraBlocks] = useState(false);
 
   useEffect(() => {
     if (!fragmentId) {
       setForm(EMPTY_FORM(initialTier));
+      setShowAdvanced(false);
+      setShowExtraBlocks(false);
       return;
     }
     setIsLoading(true);
@@ -85,7 +89,7 @@ export function FragmentEditor({
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Failed to load fragment");
-        setForm({
+        const loadedForm = {
           id: data.id ?? "",
           tier: data.tier ?? initialTier,
           version: data.meta?.version ?? "1.0.0",
@@ -104,7 +108,22 @@ export function FragmentEditor({
               content: r.content ?? "",
             })
           ),
-        });
+        };
+        setForm(loadedForm);
+        
+        // Auto-expand sections if they have content
+        const hasAdvancedContent = 
+          loadedForm.depends_on.length > 0 ||
+          loadedForm.replace_blocks.length > 0 ||
+          loadedForm.tags !== "" ||
+          loadedForm.author !== "" ||
+          loadedForm.version !== "1.0.0";
+        setShowAdvanced(hasAdvancedContent);
+        
+        const hasExtraBlocks = 
+          loadedForm.context !== "" || 
+          loadedForm.steps !== "";
+        setShowExtraBlocks(hasExtraBlocks);
       })
       .catch((e) => setError(String(e)))
       .finally(() => setIsLoading(false));
@@ -302,7 +321,7 @@ export function FragmentEditor({
       )}
 
       <div className="flex-1 overflow-y-auto p-5 space-y-6">
-        {/* Core identity */}
+        {/* Essential fields - always visible */}
         <div className="grid grid-cols-2 gap-4">
           <Field label="Fragment ID" required>
             <input
@@ -334,112 +353,58 @@ export function FragmentEditor({
               className={INPUT}
             />
           </Field>
-          <Field label="Tags">
-            <input
-              value={form.tags}
-              onChange={(e) => set("tags", e.target.value)}
-              placeholder="comma, separated, tags"
-              className={INPUT}
-            />
-          </Field>
-          <Field label="Author">
-            <input
-              value={form.author}
-              onChange={(e) => set("author", e.target.value)}
-              placeholder="Author name or team"
-              className={INPUT}
-            />
-          </Field>
-          <Field label="Version">
-            <input
-              value={form.version}
-              onChange={(e) => set("version", e.target.value)}
-              placeholder="1.0.0"
-              className={INPUT}
-            />
-          </Field>
         </div>
 
-        {/* Dependencies */}
-        {otherFragments.length > 0 && (
-          <section>
-            <Label>Dependencies</Label>
-            <p className="text-xs text-zinc-600 mb-2">
-              These fragments will be required when this one is compiled.
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {otherFragments.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => toggleDep(f.id)}
-                  className={`rounded-full px-2.5 py-1 text-xs border transition-colors ${
-                    form.depends_on.includes(f.id)
-                      ? "border-indigo-500 bg-indigo-900/40 text-indigo-300"
-                      : "border-zinc-700 text-zinc-400 hover:border-zinc-500"
-                  }`}
-                >
-                  {f.id}
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Replace blocks */}
-        {(otherFragments.length > 0 || true) && (
-          <section>
-            <Label>Replace Blocks</Label>
-            <p className="text-xs text-zinc-600 mb-2">
-              When checked, this fragment&apos;s content replaces (rather than appends to)
-              content from higher-priority tiers.
-            </p>
-            <div className="flex gap-4">
-              {(["identity", "context", "steps"] as const).map((block) => (
-                <label
-                  key={block}
-                  className="flex items-center gap-1.5 text-xs text-zinc-300 cursor-pointer select-none"
-                >
-                  <input
-                    type="checkbox"
-                    checked={form.replace_blocks.includes(block)}
-                    onChange={() => {
-                      const next = form.replace_blocks.includes(block)
-                        ? form.replace_blocks.filter((b) => b !== block)
-                        : [...form.replace_blocks, block];
-                      set("replace_blocks", next);
-                    }}
-                    className="rounded border-zinc-600 bg-zinc-800 text-indigo-500"
-                  />
-                  {block}
-                </label>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Content blocks */}
+        {/* Primary content - Identity block */}
         <section>
-          <Label>Content Blocks</Label>
-          <div className="space-y-3 mt-2">
-            <BlockField
-              label="Identity"
-              hint="Who or what the AI is"
-              value={form.identity}
-              onChange={(v) => set("identity", v)}
-            />
-            <BlockField
-              label="Context"
-              hint="Background knowledge and assumptions"
-              value={form.context}
-              onChange={(v) => set("context", v)}
-            />
-            <BlockField
-              label="Steps"
-              hint="Process instructions"
-              value={form.steps}
-              onChange={(v) => set("steps", v)}
-            />
-          </div>
+          <Label>Identity</Label>
+          <p className="text-xs text-zinc-600 mb-2">
+            Who or what the AI is — the most important block
+          </p>
+          <textarea
+            value={form.identity}
+            onChange={(e) => set("identity", e.target.value)}
+            placeholder="You are an expert in..."
+            rows={4}
+            className={TEXTAREA}
+          />
+        </section>
+
+        {/* Additional Blocks - Collapsible */}
+        <section>
+          <button
+            onClick={() => setShowExtraBlocks(!showExtraBlocks)}
+            className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 hover:text-zinc-300 transition-colors w-full"
+          >
+            <svg
+              className={`w-4 h-4 transition-transform ${showExtraBlocks ? "rotate-90" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <span>Additional Blocks (Context, Steps)</span>
+            {!showExtraBlocks && (form.context || form.steps) && (
+              <span className="text-indigo-400 ml-2">• Has content</span>
+            )}
+          </button>
+          {showExtraBlocks && (
+            <div className="space-y-3 mt-3 pl-6">
+              <BlockField
+                label="Context"
+                hint="Background knowledge and assumptions"
+                value={form.context}
+                onChange={(v) => set("context", v)}
+              />
+              <BlockField
+                label="Steps"
+                hint="Process instructions"
+                value={form.steps}
+                onChange={(v) => set("steps", v)}
+              />
+            </div>
+          )}
         </section>
 
         {/* Rules */}
@@ -487,6 +452,117 @@ export function FragmentEditor({
                   </button>
                 </div>
               ))}
+            </div>
+          )}
+        </section>
+
+        {/* Advanced Options - Collapsible */}
+        <section>
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 hover:text-zinc-300 transition-colors w-full"
+          >
+            <svg
+              className={`w-4 h-4 transition-transform ${showAdvanced ? "rotate-90" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <span>Advanced Options</span>
+            {!showAdvanced && (form.depends_on.length > 0 || form.replace_blocks.length > 0 || form.tags || form.author !== "" || form.version !== "1.0.0") && (
+              <span className="text-indigo-400 ml-2">• Configured</span>
+            )}
+          </button>
+          {showAdvanced && (
+            <div className="space-y-4 mt-3 pl-6">
+              {/* Metadata */}
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Tags">
+                  <input
+                    value={form.tags}
+                    onChange={(e) => set("tags", e.target.value)}
+                    placeholder="comma, separated, tags"
+                    className={INPUT}
+                  />
+                </Field>
+                <Field label="Author">
+                  <input
+                    value={form.author}
+                    onChange={(e) => set("author", e.target.value)}
+                    placeholder="Author name or team"
+                    className={INPUT}
+                  />
+                </Field>
+                <Field label="Version" className="col-span-2">
+                  <input
+                    value={form.version}
+                    onChange={(e) => set("version", e.target.value)}
+                    placeholder="1.0.0"
+                    className={INPUT}
+                  />
+                </Field>
+              </div>
+
+              {/* Dependencies */}
+              {otherFragments.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-2">
+                    Dependencies
+                  </label>
+                  <p className="text-xs text-zinc-600 mb-2">
+                    These fragments will be required when this one is compiled.
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {otherFragments.map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => toggleDep(f.id)}
+                        className={`rounded-full px-2.5 py-1 text-xs border transition-colors ${
+                          form.depends_on.includes(f.id)
+                            ? "border-indigo-500 bg-indigo-900/40 text-indigo-300"
+                            : "border-zinc-700 text-zinc-400 hover:border-zinc-500"
+                        }`}
+                      >
+                        {f.id}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Replace blocks */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-2">
+                  Replace Blocks
+                </label>
+                <p className="text-xs text-zinc-600 mb-2">
+                  When checked, this fragment&apos;s content replaces (rather than appends to)
+                  content from higher-priority tiers.
+                </p>
+                <div className="flex gap-4">
+                  {(["identity", "context", "steps"] as const).map((block) => (
+                    <label
+                      key={block}
+                      className="flex items-center gap-1.5 text-xs text-zinc-300 cursor-pointer select-none"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.replace_blocks.includes(block)}
+                        onChange={() => {
+                          const next = form.replace_blocks.includes(block)
+                            ? form.replace_blocks.filter((b) => b !== block)
+                            : [...form.replace_blocks, block];
+                          set("replace_blocks", next);
+                        }}
+                        className="rounded border-zinc-600 bg-zinc-800 text-indigo-500"
+                      />
+                      {block}
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </section>

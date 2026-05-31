@@ -20,7 +20,7 @@ pnpm dev                  # starts web UI at localhost:3000
 
 On first launch, the app starts with an empty fragment library and prompts you to select a starter pack. You can also dismiss the prompt and build your library from scratch using the Library Manager.
 
-You can access starter packs at any time via the **Clear Library** button in the header, which deletes all fragments and shows the starter pack selector.
+You can access starter packs at any time via the **Reset Library** button in the header, which deletes all fragments and shows the starter pack selector.
 
 
 | Starter Pack | Best For | Includes |
@@ -52,7 +52,7 @@ export** to ChatGPT, Claude Projects, GitHub Copilot, and VS Code formats elimin
 copy/paste friction.
 
 Your selection, token budget, and output format are automatically saved to
-`localStorage` and restored on your next visit. A **Clear Library** button in the header
+`localStorage` and restored on your next visit. A **Reset Library** button in the header
 deletes all fragments and clears your library, then prompts you to select a starter pack
 or build from scratch. A confirmation popup describes the full scope of the action before
 proceeding.
@@ -295,7 +295,7 @@ pnpm dev                  # starts web UI at localhost:3000
 a starter pack. You can also dismiss the prompt and build your library from scratch using the
 Library Manager.
 
-You can access starter packs at any time via the **Clear Library** button in the header, which
+You can access starter packs at any time via the **Reset Library** button in the header, which
 deletes all fragments and shows the starter pack selector.
 
 | Starter Pack | Best For | Includes |
@@ -312,8 +312,45 @@ When you apply a starter pack:
 3. A live preview is triggered
 4. You can then customize by adding/removing fragments or editing them
 
-The **Clear Library** button in the header deletes all fragments and shows the starter pack
+The **Reset Library** button in the header deletes all fragments and shows the starter pack
 selector again, allowing you to start fresh.
+
+### Fragment Recovery and defaults.json
+
+**Important:** `defaults.json` serves as your fragment library's source of truth and is **never modified** by delete or reset operations. This file contains the complete template library used by all starter packs.
+
+**How recovery works:**
+
+1. **Deleting a fragment** in Library Manager:
+   - ✅ Deletes the YAML file from `packages/fragments/<tier>/`
+   - ✅ Removes it from `.registry.json` index
+   - ✅ Deletes its revision history from `.registry-history/`
+   - ❌ Does NOT affect `defaults.json`
+
+2. **Reset Library** button:
+   - 🗑️ Deletes all current fragment YAML files
+   - ♻️ Resets `tiers.json` to default 6-tier structure
+   - 📋 Regenerates empty `.registry.json`
+   - 🎯 Shows starter pack selector
+   - ❌ Does NOT affect `defaults.json`
+
+3. **Applying a starter pack after reset:**
+   - 📖 Reads fragment paths from the preset JSON (e.g., `software-team.json`)
+   - 🔍 Looks up each fragment's content in `defaults.json`
+   - ✍️ **Writes YAML files back to disk** from `defaults.json` content
+   - 🔄 Regenerates registry with restored fragments
+   - ✨ Auto-selects fragments and triggers preview
+
+**Recovery workflow:**
+
+If you accidentally delete fragments or want to restore factory defaults:
+
+1. Click **Reset Library** in the header
+2. Confirm the reset action
+3. Select the appropriate starter pack from the modal
+4. Your fragments are restored from `defaults.json`
+
+**The only way to permanently lose a fragment** is to delete it from `defaults.json` itself (which requires direct file editing and is not exposed through the UI).
 
 ---
 
@@ -553,11 +590,17 @@ editor:
 - **Import** — uploads a JSON bundle (exported from any Prompt Primer instance);
   existing fragments are skipped by default
 
-All destructive operations (fragment delete, tier delete, and library clear) require
-confirmation through a modal dialog before proceeding. The **Clear Library** button in the
+All destructive operations (fragment delete, tier delete, and library reset) require
+confirmation through a modal dialog before proceeding. The **Reset Library** button in the
 main header (outside the Library Manager) calls `POST /api/fragments/reset`, which
 deletes all current YAML files, resets `tiers.json` to default structure, and rebuilds
-the registry index. After clearing, the starter pack selector is shown.
+the registry index. After reset, the starter pack selector is shown.
+
+**Fragment deletion behavior:**
+
+- **Deleting a fragment**: Permanently removes the YAML file from disk and deletes its revision history. Does NOT affect `defaults.json`, so the fragment can be recovered by applying the appropriate starter pack.
+- **Deleting a tier**: Only removes the tier from `tiers.json` configuration. Does NOT delete the tier directory or any YAML files. Prevented if fragments still exist in that tier.
+- **Reset Library**: Deletes all fragment YAML files and resets tier configuration. Fragments can be recovered from `defaults.json` by applying a starter pack.
 
 Export format:
 ```json
