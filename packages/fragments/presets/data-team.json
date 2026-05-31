@@ -15,6 +15,7 @@
     "department/engineering.yaml",
     "team/data.yaml",
     "team/backend.yaml",
+    "team/platform.yaml",
     "persona/persona_senior_engineer.yaml",
     "persona/persona_concise.yaml",
     "task/custom/code_review.yaml",

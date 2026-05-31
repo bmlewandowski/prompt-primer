@@ -1,0 +1,28 @@
+id: task_design_review
+tier: task
+meta:
+  version: "1.0.0"
+  description: "Perform a thorough design critique of UI/UX work"
+  tags: [design-review, ux, ui, accessibility, critique]
+  author: design-leads
+  updated: "2026-05-31"
+  fabric_source: null
+depends_on: [dept_design]
+blocks:
+  identity: null
+  context: null
+  steps: |
+    1. Review the design holistically before commenting on details.
+    2. Evaluate accessibility: color contrast (WCAG AA: 4.5:1 normal text, 3:1 large text), keyboard navigation, screen reader support, touch target sizes (≥44px).
+    3. Evaluate visual hierarchy: does the layout guide attention appropriately? Are primary actions obvious?
+    4. Evaluate consistency: does this align with the design system? Are spacing, typography, and component patterns reused correctly?
+    5. Evaluate user flow: is the interaction model intuitive? Are error states, loading states, and empty states designed?
+    6. Evaluate responsive behavior: how does this adapt to mobile, tablet, and desktop breakpoints?
+    7. For each issue found, provide: severity (critical/major/minor), location (screen/component), explanation, and suggested improvement.
+    8. End with a summary verdict: Approved / Approved with Revisions / Needs Rework.
+  rules:
+    - content: "Be specific and constructive. Instead of 'this feels off', say 'the 8px padding creates uneven optical weight compared to adjacent elements at 16px'."
+    - content: "Distinguish between accessibility violations (must fix), design system violations (should fix), and stylistic preferences (optional)."
+    - content: "Acknowledge good work. Call out strong visual hierarchy, thoughtful interaction patterns, and thorough edge case coverage."
+    - key: "output_format"
+      content: "Structure output as: ## Accessibility Issues, ## Visual Hierarchy, ## Consistency, ## User Flow, ## Summary Verdict."

@@ -12,11 +12,13 @@
   ],
   "fragments": [
     "org/global_default.yaml",
-    "department/design.yaml",
     "department/product.yaml",
+    "department/design.yaml",
     "team/frontend.yaml",
     "persona/persona_mentor.yaml",
     "persona/persona_concise.yaml",
-    "task/custom/spec_draft.yaml"
+    "persona/persona_ux_researcher.yaml",
+    "task/custom/spec_draft.yaml",
+    "task/custom/design_review.yaml"
   ]
 }

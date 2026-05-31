@@ -33,8 +33,8 @@ export async function GET() {
       }
     }
     
-    // Sort by id for consistent ordering
-    presets.sort((a, b) => a.id.localeCompare(b.id));
+    // Sort by fragment count (least to most) for intuitive ordering
+    presets.sort((a, b) => a.fragments.length - b.fragments.length);
     
     return NextResponse.json({ presets });
   } catch (err) {

@@ -749,17 +749,17 @@ templates that you can customize for your organization, team, or projects.
 
 | Fragment | Tier | Description |
 |---|---|---|
-| `global_default` | org | Universal constraints: factual accuracy, no hallucinations, security rules |
+| `global_default` | org | Baseline values: ownership, action bias, clear communication, no surprises |
 | `dept_engineering` | department | Software craft standards: SOLID, DRY, separation of concerns |
-| `dept_design` | department | UX principles, design systems, and WCAG accessibility standards |
-| `dept_product` | department | User outcomes, requirements clarity, and delivery discipline |
+| `dept_design` | department | UX principles, design systems, accessibility (WCAG 2.1 AA), user-centered design |
+| `dept_product` | department | Product strategy, user research, prioritization, metrics-driven decisions |
 
 ### Team Fragments
 
 | Fragment | Description |
 |---|---|
 | `team_backend` | API design, services, databases, and performance optimization |
-| `team_frontend` | UI/UX, accessibility, and component architecture |
+| `team_frontend` | UI implementation, component architecture, accessibility (WCAG), responsive design |
 | `team_platform` | Infrastructure, CI/CD, observability, and site reliability |
 | `team_data` | Pipelines, analytics, schema design, and data quality |
 | `team_qa` | Quality assurance, test strategy, and release validation |
@@ -770,8 +770,7 @@ templates that you can customize for your organization, team, or projects.
 | Fragment | Tier | Description |
 |---|---|
 | `project_ecommerce_platform` | project | E-commerce storefront with cart, checkout, and orders |
-| `task_code_review` | task | Perform a thorough code review of a given diff or file |
-| `task_spec_draft` | task | Draft a functional specification from a feature description |
+| `task_code_review` | task | Perform a thorough code review of a given diff or file || `task_design_review` | task | Perform a design critique evaluating UX, accessibility, and visual consistency || `task_spec_draft` | task | Draft a functional specification from a feature description |
 
 ### Persona Fragments
 
@@ -781,6 +780,7 @@ templates that you can customize for your organization, team, or projects.
 | `persona_concise` | Terse and direct — no filler, no summaries, no affirmations |
 | `persona_security_reviewer` | Adversarial mindset, OWASP-aware, risk-rated findings |
 | `persona_mentor` | Patient, teaching-oriented, explains reasoning, calibrates to audience |
+| `persona_ux_researcher` | User research specialist, qualitative/quantitative methods, evidence-based design |
 
 Persona fragments are composable. Selecting multiple stacks their `identity` and `rules`
 contributions — e.g. `persona_senior_engineer` + `persona_concise` produces a senior

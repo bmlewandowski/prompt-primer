@@ -12,21 +12,20 @@
   ],
   "fragments": [
     "org/global_default.yaml",
-    "department/design.yaml",
     "department/engineering.yaml",
+    "department/design.yaml",
     "department/product.yaml",
     "team/backend.yaml",
-    "team/data.yaml",
     "team/frontend.yaml",
+    "team/data.yaml",
     "team/platform.yaml",
-    "team/qa.yaml",
-    "team/security.yaml",
-    "project/ecommerce_platform.yaml",
     "persona/persona_concise.yaml",
     "persona/persona_mentor.yaml",
     "persona/persona_security_reviewer.yaml",
     "persona/persona_senior_engineer.yaml",
+    "persona/persona_ux_researcher.yaml",
     "task/custom/code_review.yaml",
-    "task/custom/spec_draft.yaml"
+    "task/custom/spec_draft.yaml",
+    "task/custom/design_review.yaml"
   ]
 }
