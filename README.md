@@ -1,8 +1,40 @@
+
 # Prompt Primer
 
 A hierarchical prompt compilation engine for assembling contextual AI system prompts
 from a library of reusable fragments. Inspired by and compatible with
 [Daniel Miessler's Fabric framework](https://github.com/danielmiessler/fabric).
+
+---
+
+## Getting started
+
+**Prerequisites:** Node.js ≥ 25, pnpm ≥ 10
+
+```bash
+pnpm install
+pnpm build                # builds all packages including compiler
+pnpm generate-registry    # creates .registry.json (requires built compiler)
+pnpm dev                  # starts web UI at localhost:3000
+```
+
+On first launch, the app starts with an empty fragment library and prompts you to select a starter pack. You can also dismiss the prompt and build your library from scratch using the Library Manager.
+
+You can access starter packs at any time via the **Clear Library** button in the header, which deletes all fragments and shows the starter pack selector.
+
+| Starter Pack | Best For | Includes |
+|--------------|----------|----------|
+| **Software Development Team** | Engineering teams | Backend, frontend, platform, QA, security fragments + code review tasks |
+| **Product & Design Team** | Product managers & designers | Design, product management, UX, requirements fragments |
+| **Data & Analytics Team** | Data engineers & analysts | Data pipelines, analytics, schema design, quality fragments |
+| **Full Organization** | Complete setup | All departments, teams, personas, and tasks |
+| **Minimal Starter** | Clean slate | Only org defaults and basic personas |
+
+When you apply a starter pack:
+1. The fragments are imported into your library (if not already present)
+2. The UI automatically selects those fragments
+3. A live preview is triggered
+4. You can then customize by adding/removing fragments or editing them
 
 ---
 
