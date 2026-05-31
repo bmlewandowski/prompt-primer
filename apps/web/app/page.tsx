@@ -361,7 +361,7 @@ export default function BuilderPage() {
       {/* Main layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left sidebar — Fragment Tree */}
-        <aside className="flex w-72 shrink-0 flex-col border-r border-zinc-800 p-4 overflow-hidden">
+        <aside className="flex w-72 shrink-0 flex-col border-r border-zinc-800 p-4">
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             Fragment Library
           </h2>

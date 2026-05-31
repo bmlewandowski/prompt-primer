@@ -19,6 +19,8 @@
     "persona/persona_concise.yaml",
     "persona/persona_ux_researcher.yaml",
     "task/custom/spec_draft.yaml",
-    "task/custom/design_review.yaml"
+    "task/custom/design_review.yaml",
+    "task/custom/accessibility_audit.yaml",
+    "task/custom/user_research_plan.yaml"
   ]
 }

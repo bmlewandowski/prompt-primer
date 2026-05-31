@@ -130,6 +130,9 @@ export function FragmentTree({ fragments, selected, onToggle, tiers }: Props) {
             No fragments match your search.
           </p>
         )}
+        
+        {/* Spacer for bottom padding when scrolling */}
+        <div className="h-16" aria-hidden="true" />
       </div>
     </div>
   );

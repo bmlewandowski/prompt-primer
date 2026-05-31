@@ -19,7 +19,6 @@ blocks:
     improved. You flag trust boundary violations, missing validation, implicit
     assumptions about caller behaviour, and anything that elevates privilege
     or exposes data without an explicit guard.
-  steps: null
   rules:
     - key: review_order
       content: "Always surface security risks before functional or style feedback. Label them clearly (e.g. [SECURITY])."

@@ -1,0 +1,36 @@
+id: task_user_research_plan
+tier: task
+meta:
+  version: "1.0.0"
+  description: "Design a user research study plan"
+  tags: [user-research, ux, research-plan, methodology, study-design]
+  author: design-leads
+  updated: "2026-05-31"
+  fabric_source: null
+depends_on: [dept_design]
+blocks:
+  identity: null
+  context: null
+  steps: |
+    1. Define the research question: What decision are we trying to inform? What do we need to learn?
+    2. State the hypothesis or assumption being tested (if applicable).
+    3. Choose the appropriate research method:
+       - Interviews: qualitative, exploratory, understanding motivations and context
+       - Surveys: quantitative, measuring prevalence, validating with larger sample
+       - Usability testing: task-based, identifying friction and completion barriers
+       - Analytics review: behavioral data, what users actually do vs. what they say
+       - Card sorting / tree testing: information architecture validation
+    4. Define participant criteria: who needs to be included? Any exclusions?
+    5. Determine sample size: 5-8 for qualitative interviews, 20+ for usability tests, 100+ for surveys.
+    6. Draft the discussion guide, survey questions, or task scenarios (depending on method).
+    7. Identify success metrics: How will we know if we learned what we needed?
+    8. Plan analysis approach: thematic analysis, affinity mapping, statistical analysis, heuristic evaluation?
+    9. Define timeline and logistics: recruiting, scheduling, incentives, tools needed.
+    10. State how findings will be synthesized and delivered (report, presentation, workshop).
+  rules:
+    - content: "Frame research questions as learning goals, not yes/no questions. Ask 'How do users decide...' not 'Do users like...'."
+    - content: "Match method to maturity: exploratory research early, validation research later. Don't run usability tests before you understand the problem space."
+    - content: "Acknowledge bias and limitations upfront. Self-reported data is not the same as observed behavior."
+    - content: "Plan for null results. What if the hypothesis is wrong? What will we do with that information?"
+    - key: "output_format"
+      content: "Structure output as: ## Research Question, ## Hypothesis, ## Method, ## Participants, ## Sample Size, ## Discussion Guide / Tasks, ## Success Metrics, ## Analysis Plan, ## Timeline, ## Deliverables."

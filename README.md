@@ -770,7 +770,11 @@ templates that you can customize for your organization, team, or projects.
 | Fragment | Tier | Description |
 |---|---|
 | `project_ecommerce_platform` | project | E-commerce storefront with cart, checkout, and orders |
-| `task_code_review` | task | Perform a thorough code review of a given diff or file || `task_design_review` | task | Perform a design critique evaluating UX, accessibility, and visual consistency || `task_spec_draft` | task | Draft a functional specification from a feature description |
+| `task_code_review` | task | Perform a thorough code review of a given diff or file |
+| `task_design_review` | task | Perform a design critique evaluating UX, accessibility, and visual consistency |
+| `task_accessibility_audit` | task | Comprehensive WCAG 2.1 AA accessibility compliance audit |
+| `task_user_research_plan` | task | Design a user research study with method selection and participant criteria |
+| `task_spec_draft` | task | Draft a functional specification from a feature description |
 
 ### Persona Fragments
 

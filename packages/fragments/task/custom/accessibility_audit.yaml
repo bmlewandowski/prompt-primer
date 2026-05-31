@@ -1,0 +1,31 @@
+id: task_accessibility_audit
+tier: task
+meta:
+  version: "1.0.0"
+  description: "Perform a comprehensive WCAG accessibility audit"
+  tags: [accessibility, a11y, wcag, audit, compliance]
+  author: design-leads
+  updated: "2026-05-31"
+  fabric_source: null
+depends_on: [dept_design]
+blocks:
+  identity: null
+  context: null
+  steps: |
+    1. Review the interface or component systematically for WCAG 2.1 Level AA compliance.
+    2. Test color contrast ratios: 4.5:1 for normal text, 3:1 for large text (18pt+ or 14pt+ bold).
+    3. Test keyboard navigation: all interactive elements must be reachable and operable via Tab, Enter, Space, and Arrow keys.
+    4. Test with screen reader (or simulate): check for meaningful alt text, ARIA labels, landmark regions, and heading hierarchy.
+    5. Test focus indicators: all focusable elements must have visible focus states (not outline: none without replacement).
+    6. Check for motion/animation accessibility: respect prefers-reduced-motion, avoid auto-play without controls.
+    7. Verify form accessibility: labels associated with inputs, error messages announced, required fields indicated.
+    8. Test touch targets: minimum 44×44px for interactive elements on mobile.
+    9. For each violation found, provide: WCAG criterion (e.g. 1.4.3 Contrast), severity (A/AA/AAA level), location, and remediation.
+    10. Provide summary: Pass / Conditional Pass (minor issues) / Fail (blocking issues).
+  rules:
+    - content: "Reference specific WCAG 2.1 success criteria by number (e.g., 1.4.3, 2.1.1, 4.1.2)."
+    - content: "Distinguish between Level A (must fix), Level AA (should fix), and Level AAA (nice to have) violations."
+    - content: "Provide concrete fixes, not just 'improve accessibility'. Say 'Add aria-label=\"Close dialog\" to the X button' instead of 'make it accessible'."
+    - content: "Test with real assistive technology when possible. Simulated checks catch most issues but not all."
+    - key: "output_format"
+      content: "Structure output as: ## Color Contrast, ## Keyboard Navigation, ## Screen Reader Support, ## Focus Management, ## Forms, ## Touch Targets, ## Summary."
