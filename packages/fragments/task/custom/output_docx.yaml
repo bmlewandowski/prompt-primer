@@ -1,0 +1,21 @@
+id: output_docx
+tier: task
+meta:
+  version: "1.0.0"
+  description: "Output results formatted for easy import into Microsoft Word (.docx)."
+  tags: [output, docx, word, document, office]
+  author: prompt-primer
+  updated: "2026-05-31"
+  fabric_source: null
+depends_on: []
+blocks:
+  identity: null
+  context: null
+  steps: |
+    1. Structure the output with clear section headings (e.g., Introduction, Results, Conclusion).
+    2. Use bullet points, numbered lists, and tables as appropriate.
+    3. Avoid using features not supported by Word (e.g., advanced HTML/CSS).
+  rules:
+    - key: output_format
+      content: |
+        Output the result in a format that can be copy-pasted into Microsoft Word and retain structure. Use Markdown or simple HTML for tables and lists. Do not include any explanation or commentary outside the document content.

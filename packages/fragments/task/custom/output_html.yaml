@@ -1,0 +1,25 @@
+id: output_html
+tier: task
+meta:
+  version: "1.0.0"
+  description: "Output results as valid, semantic HTML for web or documentation use."
+  tags: [output, html, web, documentation]
+  author: prompt-primer
+  updated: "2026-05-31"
+  fabric_source: null
+depends_on: []
+blocks:
+  identity: null
+  context: null
+  steps: |
+    1. Use semantic HTML elements (e.g., <table>, <ul>, <ol>, <section>, <article>) as appropriate for the content.
+    2. Ensure the output is valid HTML5 and can be copy-pasted into a web page or documentation.
+    3. Use <pre> for code blocks and <strong>/<em> for emphasis.
+  rules:
+    - key: output_format
+      content: |
+        Output the result as valid HTML. Do not include any explanation or commentary outside the HTML. Example:
+        <table>
+          <tr><th>Header 1</th><th>Header 2</th></tr>
+          <tr><td>Value 1</td><td>Value 2</td></tr>
+        </table>

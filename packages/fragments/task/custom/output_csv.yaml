@@ -1,0 +1,24 @@
+id: output_csv
+tier: task
+meta:
+  version: "1.0.0"
+  description: "Output results as a CSV table for easy import into spreadsheets or data tools."
+  tags: [output, csv, table, spreadsheet, data]
+  author: prompt-primer
+  updated: "2026-05-31"
+  fabric_source: null
+depends_on: []
+blocks:
+  identity: null
+  context: null
+  steps: |
+    1. Organize the output as a table with clear column headers.
+    2. Ensure all rows have the same number of columns.
+    3. Escape commas and quotes as needed for CSV compatibility.
+  rules:
+    - key: output_format
+      content: |
+        Output the result as a valid CSV file. The first row must be column headers. Use UTF-8 encoding. Example:
+        "Column 1","Column 2","Column 3"
+        "Value 1","Value 2","Value 3"
+        Do not include any explanation or commentary outside the CSV.

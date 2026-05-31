@@ -19,6 +19,7 @@
     "persona/persona_senior_engineer.yaml",
     "persona/persona_concise.yaml",
     "task/custom/code_review.yaml",
-    "task/custom/spec_draft.yaml"
+    "task/custom/spec_draft.yaml",
+    "task/custom/output_csv.yaml"
   ]
 }

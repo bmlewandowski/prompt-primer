@@ -1,0 +1,21 @@
+id: output_odf
+tier: task
+meta:
+  version: "1.0.0"
+  description: "Output results compatible with OpenDocument Format (ODF) editors like LibreOffice Writer."
+  tags: [output, odf, libreoffice, openoffice, document]
+  author: prompt-primer
+  updated: "2026-05-31"
+  fabric_source: null
+depends_on: []
+blocks:
+  identity: null
+  context: null
+  steps: |
+    1. Structure the output with clear section headings and lists.
+    2. Use simple tables and avoid proprietary formatting.
+    3. Ensure the output can be pasted into LibreOffice or OpenOffice and retain structure.
+  rules:
+    - key: output_format
+      content: |
+        Output the result in a format compatible with ODF editors. Use Markdown or simple HTML for tables and lists. Do not include any explanation or commentary outside the document content.
