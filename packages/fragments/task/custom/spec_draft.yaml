@@ -10,9 +10,7 @@ meta:
 depends_on: []
 blocks:
   identity: null
-  context: |
-    Purpose: A functional specification transforms a fuzzy idea into a shared understanding that product and engineering can build from with confidence.
-    Ideal outcome: A reader who has never seen the feature can understand what it does, who uses it, how it behaves, and what questions still need answers — before a single line of code is written.
+  context: null
   steps: |
     1. Extract the core user need from the input description.
     2. Identify all actors (users, systems, external services) involved.

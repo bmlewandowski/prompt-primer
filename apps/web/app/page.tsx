@@ -5,6 +5,7 @@ import { FragmentTree } from "@/components/FragmentTree";
 import { TokenBudget } from "@/components/TokenBudget";
 import { PreviewPane } from "@/components/PreviewPane";
 import { LibraryManager } from "@/components/LibraryManager";
+import { PresetSelector } from "@/components/PresetSelector";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { RegistryEntry, CompileResult, TierConfig } from "@/lib/types";
 import type { HealthIssue } from "@/app/api/fragments/health/route";
@@ -63,6 +64,7 @@ export default function BuilderPage() {
   const [tokenBudget, setTokenBudget] = useState(DEFAULT_TOKEN_BUDGET);
   const [outputFormat, setOutputFormat] = useState<"fabric" | "xml" | "prose" | "json" | "chatml">("fabric");
   const [showManager, setShowManager] = useState(false);
+  const [showPresetSelector, setShowPresetSelector] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string;
     message: string;
@@ -83,6 +85,10 @@ export default function BuilderPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Failed to load fragments");
         setFragments(data);
+        // Show preset selector if library is empty
+        if (Array.isArray(data) && data.length === 0) {
+          setShowPresetSelector(true);
+        }
       })
       .catch((err) => setFragmentsError(String(err)));
     fetch("/api/tiers")
@@ -236,9 +242,9 @@ export default function BuilderPage() {
 
   const handleResetDefaults = () => {
     setConfirmDialog({
-      title: "Reset to factory defaults?",
+      title: "Clear fragment library?",
       message:
-        "This will delete all user-created fragments and tiers, and restore the original library. Your saved selection and preferences will also be cleared. This cannot be undone.",
+        "This will delete all fragments and clear your library. Your saved selection and preferences will also be cleared. After reset, you can select a starter pack or build from scratch. This cannot be undone.",
       onConfirm: async () => {
         setConfirmDialog(null);
         setIsLoading(true);
@@ -254,6 +260,8 @@ export default function BuilderPage() {
           setOutputFormat("fabric");
           setResult(null);
           reloadFragments();
+          // Show preset selector after reset
+          setShowPresetSelector(true);
         } catch (err) {
           // Surface error in the preview area
           setPreviewError(err instanceof Error ? err.message : "Reset failed");
@@ -329,9 +337,9 @@ export default function BuilderPage() {
           <button
             onClick={handleResetDefaults}
             className="rounded border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-500 hover:bg-orange-900/60 hover:border-orange-700 hover:text-orange-300 transition-colors"
-            title="Reset selection and preferences to defaults"
+            title="Clear all fragments from library"
           >
-            Reset
+            Clear Library
           </button>
           <button
             onClick={() => setShowManager(true)}
@@ -390,6 +398,36 @@ export default function BuilderPage() {
           onClose={() => setShowManager(false)}
           onRegistryChanged={reloadFragments}
         />
+      )}
+
+      {showPresetSelector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-2xl">
+            <PresetSelector
+              onSelect={async (presetId) => {
+                try {
+                  const res = await fetch("/api/presets/apply", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ presetId }),
+                  });
+                  if (!res.ok) throw new Error("Failed to apply preset");
+                  const { preset } = await res.json();
+                  const fragmentIds = preset.fragmentPaths.map((path: string) => {
+                    const filename = path.split('/').pop() || '';
+                    return filename.replace(/\.yaml$/, '');
+                  });
+                  setSelected(new Set(fragmentIds));
+                  setShowPresetSelector(false);
+                  reloadFragments();
+                } catch (err) {
+                  setPreviewError(err instanceof Error ? err.message : "Failed to apply preset");
+                }
+              }}
+              onCancel={() => setShowPresetSelector(false)}
+            />
+          </div>
+        </div>
       )}
 
       <ConfirmDialog

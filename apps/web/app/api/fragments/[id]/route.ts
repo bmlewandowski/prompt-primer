@@ -7,6 +7,7 @@ import {
   loadValidatedRegistry,
   withWriteLock,
 } from "@/lib/fragmentRegistry";
+import { appendFragmentHistory, deleteFragmentHistory } from "@/lib/fragmentHistory";
 import { checkWriteAuth } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -53,6 +54,12 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
 
   try {
     await withWriteLock(async () => {
+      // Save current version to history before updating
+      const currentFragment = await getFragmentById(pathId);
+      if (currentFragment) {
+        await appendFragmentHistory(pathId, currentFragment, "Pre-update snapshot");
+      }
+      
       await saveFragmentAndUpdateRegistry(parsed.data, previousPath);
     });
     return NextResponse.json({ success: true });
@@ -70,6 +77,8 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
 
   try {
     await withWriteLock(async () => {
+      // Delete history when fragment is deleted
+      await deleteFragmentHistory(id);
       await deleteFragmentAndUpdateRegistry(id);
     });
     return NextResponse.json({ success: true });

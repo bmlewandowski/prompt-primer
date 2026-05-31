@@ -1,0 +1,32 @@
+{
+  "id": "full-stack",
+  "name": "Full Organization (All Fragments)",
+  "description": "Complete preset with all departments, teams, and personas for comprehensive coverage",
+  "tiers": [
+    { "id": "org", "label": "Organization" },
+    { "id": "department", "label": "Departments" },
+    { "id": "team", "label": "Teams" },
+    { "id": "project", "label": "Projects" },
+    { "id": "persona", "label": "Personas" },
+    { "id": "task", "label": "Tasks" }
+  ],
+  "fragments": [
+    "org/global_default.yaml",
+    "department/design.yaml",
+    "department/engineering.yaml",
+    "department/product.yaml",
+    "team/backend.yaml",
+    "team/data.yaml",
+    "team/frontend.yaml",
+    "team/platform.yaml",
+    "team/qa.yaml",
+    "team/security.yaml",
+    "project/ecommerce_platform.yaml",
+    "persona/persona_concise.yaml",
+    "persona/persona_mentor.yaml",
+    "persona/persona_security_reviewer.yaml",
+    "persona/persona_senior_engineer.yaml",
+    "task/custom/code_review.yaml",
+    "task/custom/spec_draft.yaml"
+  ]
+}

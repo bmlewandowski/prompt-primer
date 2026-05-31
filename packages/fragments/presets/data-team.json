@@ -1,0 +1,23 @@
+{
+  "id": "data-team",
+  "name": "Data & Analytics Team",
+  "description": "Data engineering and analytics preset with pipelines, schema design, and quality focus",
+  "tiers": [
+    { "id": "org", "label": "Organization" },
+    { "id": "department", "label": "Departments" },
+    { "id": "team", "label": "Teams" },
+    { "id": "project", "label": "Projects" },
+    { "id": "persona", "label": "Personas" },
+    { "id": "task", "label": "Tasks" }
+  ],
+  "fragments": [
+    "org/global_default.yaml",
+    "department/engineering.yaml",
+    "team/data.yaml",
+    "team/backend.yaml",
+    "persona/persona_senior_engineer.yaml",
+    "persona/persona_concise.yaml",
+    "task/custom/code_review.yaml",
+    "task/custom/spec_draft.yaml"
+  ]
+}

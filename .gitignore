@@ -12,6 +12,10 @@ build/
 
 # Test coverage
 coverage/
+.vitest/
+
+# Test artifacts (should use tmpdir, but catch any leaks)
+apps/web/packages/
 
 # Environment files
 .env*
@@ -45,4 +49,7 @@ packages/fragments/task/fabric/.sync-lock.json
 
 # Generated registry
 packages/fragments/.registry.json
+
+# Fragment version history
+packages/fragments/.registry-history/
 

@@ -1,0 +1,18 @@
+{
+  "id": "minimal",
+  "name": "Minimal Starter",
+  "description": "Bare minimum preset with only org-level defaults and basic personas",
+  "tiers": [
+    { "id": "org", "label": "Organization" },
+    { "id": "department", "label": "Departments" },
+    { "id": "team", "label": "Teams" },
+    { "id": "project", "label": "Projects" },
+    { "id": "persona", "label": "Personas" },
+    { "id": "task", "label": "Tasks" }
+  ],
+  "fragments": [
+    "org/global_default.yaml",
+    "persona/persona_concise.yaml",
+    "persona/persona_mentor.yaml"
+  ]
+}

@@ -14,13 +14,15 @@ into a single, clean system prompt — in Fabric-topology Markdown, XML, or plai
 
 The web UI lets you browse the fragment library, select what applies to your context,
 preview the compiled output in real time, track token budget, choose output format,
-and manage the entire fragment library without touching the filesystem.
+and manage the entire fragment library without touching the filesystem. **One-click
+export** to ChatGPT, Claude Projects, GitHub Copilot, and VS Code formats eliminates
+copy/paste friction.
 
 Your selection, token budget, and output format are automatically saved to
-`localStorage` and restored on your next visit. A **Reset** button in the header
-restores the factory-default fragment library (deletes all user-created fragments
-and tiers, rewrites them from `defaults.json`) and clears saved session state.
-A confirmation popup describes the full scope of the action before proceeding.
+`localStorage` and restored on your next visit. A **Clear Library** button in the header
+deletes all fragments and clears your library, then prompts you to select a starter pack
+or build from scratch. A confirmation popup describes the full scope of the action before
+proceeding.
 
 ---
 
@@ -235,7 +237,8 @@ packages/
       validate.ts           Fragment schema validator
     .registry.json        Auto-generated index (do not edit by hand)
     tiers.json            Ordered tier configuration (do not edit by hand)
-    defaults.json         Factory-default snapshot (fragments + tiers) used by reset
+    defaults.json         Template library used by starter packs
+    presets/              Starter pack JSON files for quick library setup
 scripts/
   sync-fabric.ts          Fabric pattern import script (with SHA-256 lock)
 ```
@@ -248,10 +251,36 @@ scripts/
 
 ```bash
 pnpm install
-pnpm --filter @prompt-primer/compiler build
-pnpm generate-registry
+pnpm build                # builds all packages including compiler
+pnpm generate-registry    # creates .registry.json (requires built compiler)
 pnpm dev                  # starts web UI at localhost:3000
 ```
+
+### Starter Packs
+
+**On first launch**, the app starts with an empty fragment library and prompts you to select
+a starter pack. You can also dismiss the prompt and build your library from scratch using the
+Library Manager.
+
+You can access starter packs at any time via the **Clear Library** button in the header, which
+deletes all fragments and shows the starter pack selector.
+
+| Starter Pack | Best For | Includes |
+|--------------|----------|----------|
+| **Software Development Team** | Engineering teams | Backend, frontend, platform, QA, security fragments + code review tasks |
+| **Product & Design Team** | Product managers & designers | Design, product management, UX, requirements fragments |
+| **Data & Analytics Team** | Data engineers & analysts | Data pipelines, analytics, schema design, quality fragments |
+| **Full Organization** | Complete setup | All departments, teams, personas, and tasks |
+| **Minimal Starter** | Clean slate | Only org defaults and basic personas |
+
+When you apply a starter pack:
+1. The fragments are imported into your library (if not already present)
+2. The UI automatically selects those fragments
+3. A live preview is triggered
+4. You can then customize by adding/removing fragments or editing them
+
+The **Clear Library** button in the header deletes all fragments and shows the starter pack
+selector again, allowing you to start fresh.
 
 ---
 
@@ -275,6 +304,137 @@ pnpm test
 **Type-check the web app:**
 ```bash
 cd apps/web && pnpm exec tsc --noEmit
+```
+
+---
+
+## Testing
+
+The project has comprehensive unit and integration test coverage with 327 tests across the compiler package and web app.
+
+### Test Suite Structure
+
+**Compiler Package** (173 tests, ~85% coverage):
+
+| Test File | Tests | Coverage |
+|-----------|-------|----------|
+| `tokenizer.test.ts` | 19 | Token counting, encoding support, encoder caching |
+| `renderer.test.ts` | 44 | All output formats (Fabric, XML, prose, JSON, ChatML), header escaping |
+| `linter.test.ts` | 27 | Identity clarity, rule quality, consistency checks |
+| `merger.test.ts` | 33 | Block merging, replace_blocks, circular dependencies, rule deduplication |
+| `loader.test.ts` | 23 | YAML loading, validation, schema enforcement, error handling |
+| `index.test.ts` | 27 | End-to-end integration, security (path traversal), all formats |
+
+**Web App** (154 tests):
+
+| Test File | Tests | Coverage |
+|-----------|-------|----------|
+| `auth.test.ts` | 18 | Bearer token auth, request body size limits, security middleware |
+| `runCompile.test.ts` | 14 | Compilation integration, registry allowlist, lint warnings, error responses |
+| `platformExports.test.ts` | 43 | Platform-specific formatting (ChatGPT, Claude, Copilot, cURL, VS Code), character limits |
+| `fragmentHistory.test.ts` | 22 | Revision tracking, timestamp-based retrieval, JSONL persistence, cleanup |
+| `fragmentRegistry.test.ts` | 57 | CRUD operations, concurrency control, caching, registry regeneration, path security |
+
+### Running Tests
+
+```bash
+# Run all tests (from project root)
+pnpm test
+
+# Run compiler tests only
+cd packages/compiler && pnpm test
+
+# Run web app tests only
+cd apps/web && pnpm test
+
+# Run tests in watch mode (auto-rerun on changes)
+cd packages/compiler && pnpm test:watch
+cd apps/web && pnpm test:watch
+
+# Run a specific test file
+cd packages/compiler && pnpm exec vitest run tests/tokenizer.test.ts
+cd apps/web && pnpm exec vitest run tests/platformExports.test.ts
+```
+
+### What's Tested
+
+**Core Functionality:**
+- ✅ Fragment loading from YAML with full schema validation
+- ✅ Block merging with tier priority (org → department → team → project → persona → task)
+- ✅ Keyed rule override behavior (lower tiers win)
+- ✅ Unnamed rule deduplication
+- ✅ `replace_blocks` directive for identity/context/steps replacement
+- ✅ Circular dependency detection in `depends_on` graphs
+- ✅ Missing dependency reporting
+- ✅ Token counting with cl100k_base and o200k_base encodings
+- ✅ All output formats: Fabric, XML, prose, JSON, ChatML
+- ✅ Quality linting (vague identities, long rules, contradictions)
+
+**Web App Core:**
+- ✅ Fragment CRUD operations (create, read, update, delete)
+- ✅ Registry management and regeneration
+- ✅ Write lock concurrency control prevents data corruption
+- ✅ In-process registry caching and invalidation
+- ✅ Tier configuration loading and persistence
+- ✅ Fragment revision history (append, load, delete)
+- ✅ Timestamp-based revision retrieval
+- ✅ JSONL persistence for version tracking
+- ✅ Platform-specific export formatting (ChatGPT, Claude, Copilot, cURL, VS Code)
+- ✅ Character limit warnings (ChatGPT 1500 char custom instructions)
+- ✅ Metadata inclusion/exclusion in exports
+- ✅ Special character handling in formatted outputs
+- ✅ Compilation integration with registry allowlist
+- ✅ Lint warnings integration in compile responses
+
+**Security:**
+- ✅ Path traversal prevention (`../` sequences rejected)
+- ✅ Absolute path rejection outside base directory
+- ✅ Post-normalization path validation
+- ✅ Bearer token authentication middleware
+- ✅ Request body size limits (100 KB)
+- ✅ Safe fragment/tier ID validation (alphanumeric + hyphens/underscores only)
+
+**Error Handling:**
+- ✅ Missing file detection
+- ✅ YAML parse error reporting
+- ✅ Schema validation with detailed error messages
+- ✅ Invalid semver, URLs, and field formats
+
+### Adding New Tests
+
+Tests use Vitest with a simple pattern:
+
+```typescript
+import { describe, it, expect } from "vitest";
+
+describe("feature name", () => {
+  it("does something specific", () => {
+    // Arrange: set up test data
+    // Act: call the function
+    // Assert: verify the result
+    expect(result).toBe(expected);
+  });
+});
+```
+
+For tests requiring file I/O, use temporary directories:
+
+```typescript
+import { beforeAll, afterAll } from "vitest";
+import { mkdir, rm, writeFile } from "fs/promises";
+import { join } from "path";
+import { tmpdir } from "os";
+
+const testDir = join(tmpdir(), `test-${Date.now()}`);
+
+beforeAll(async () => {
+  await mkdir(testDir, { recursive: true });
+  // Create test fixtures
+});
+
+afterAll(async () => {
+  await rm(testDir, { recursive: true, force: true });
+});
 ```
 
 ---
@@ -360,11 +520,11 @@ editor:
 - **Import** — uploads a JSON bundle (exported from any Prompt Primer instance);
   existing fragments are skipped by default
 
-All destructive operations (fragment delete, tier delete, and factory reset) require
-confirmation through a modal dialog before proceeding. The **Reset** button in the
+All destructive operations (fragment delete, tier delete, and library clear) require
+confirmation through a modal dialog before proceeding. The **Clear Library** button in the
 main header (outside the Library Manager) calls `POST /api/fragments/reset`, which
-deletes all current YAML files, restores the originals from `defaults.json`, resets
-`tiers.json`, and rebuilds the registry index.
+deletes all current YAML files, resets `tiers.json` to default structure, and rebuilds
+the registry index. After clearing, the starter pack selector is shown.
 
 Export format:
 ```json
@@ -398,27 +558,222 @@ know which format was used.
 
 ---
 
-## Fragment authorship — WealthCounsel
+## Platform Export
 
-The current fragment library is authored for WealthCounsel engineering. Key fragments:
+The **Export to Platform** button in the Preview pane provides one-click export to popular
+AI platforms with platform-specific formatting and constraints.
+
+### Available exports
+
+| Platform | Action | Description |
+|----------|--------|-------------|
+| **ChatGPT Custom Instructions** | Copy to clipboard | Formats for ChatGPT's custom instructions. Warns if content exceeds 1500 character limit. |
+| **Claude Projects** | Copy to clipboard | Exports as Markdown with metadata header for Claude Projects knowledge base. |
+| **GitHub Copilot** | Copy to clipboard | Formats as `.github/copilot-instructions.md` for repository-level context. |
+| **VS Code Instructions** | Copy to clipboard | Formats as `.instructions.md` for workspace root (used by GitHub Copilot in VS Code). |
+| **cURL API Example** | Download file | Generates ready-to-run shell script with OpenAI and Anthropic API examples. |
+
+### Usage
+
+1. Compile your prompt by selecting fragments
+2. Click **Export to Platform** in the Preview pane
+3. Choose your target platform from the dropdown
+4. The formatted content is copied to clipboard (or downloaded for cURL)
+5. A success toast confirms the action
+
+### Platform-specific notes
+
+**ChatGPT Custom Instructions** — ChatGPT limits custom instructions to 1500 characters.
+If your compiled prompt exceeds this limit, you'll see a warning with the actual character
+count. Consider:
+- Selecting fewer fragments
+- Using more concise personas
+- Splitting context across "What would you like ChatGPT to know" and "How would you like
+  ChatGPT to respond" fields manually
+
+**GitHub Copilot** — The exported `.github/copilot-instructions.md` file should be placed
+in your repository root. Commit it to version control so all team members share the same
+context. GitHub Copilot will automatically load these instructions when working in the repo.
+
+**VS Code Instructions** — Place the exported `.instructions.md` file in your workspace
+root (the folder opened in VS Code). GitHub Copilot in VS Code will read this file and
+apply the context to all conversations in that workspace.
+
+**cURL Examples** — The downloaded shell script includes:
+- OpenAI API example (GPT-4)
+- Anthropic API example (Claude 3.5 Sonnet) commented out
+- Replace `YOUR_API_KEY` with your actual API key before running
+- Adjust model, temperature, and max_tokens as needed
+
+---
+
+## Fragment Quality Linter
+
+The **Quality** tab in the Preview pane analyzes your selected fragments and provides
+warnings and suggestions to help you write clearer, more effective prompts.
+
+### What it checks
+
+The linter performs four categories of analysis:
+
+**1. Identity Clarity**
+- Flags identities with too many vague words ("help", "assist", "support", etc.)
+- Warns if identity blocks are too short (<10 words)
+- Checks for proper Telos framing (includes "current state" and "ideal state" labels)
+
+**2. Rule Length**
+- Flags individual rules exceeding 200 words (suggests splitting into multiple rules)
+- Warns when a fragment has more than 5 rules (suggests splitting into separate fragments)
+
+**3. Rule Consistency**
+- Detects contradictory directives across selected fragments:
+  - "always" vs. "never"
+  - "must" vs. "optional"
+  - "formal" vs. "casual"
+  - "verbose" vs. "concise"
+  - And other common conflicts
+- Identifies keyed rule overrides (lower-tier fragments replacing higher-tier rules)
+
+**4. Structure**
+- Highlights fragments with missing or empty required blocks
+- Warns about potential merge conflicts
+
+### Using the Quality tab
+
+1. Select fragments and compile your prompt
+2. Click the **Quality** tab in the Preview pane
+3. Review warnings organized by severity:
+   - **Error** (red) — Critical issues that should be fixed
+   - **Warning** (amber) — Potential problems worth reviewing
+   - **Info** (blue) — Suggestions for improvement
+
+Each warning shows:
+- The fragment ID where the issue was found
+- The category of the issue
+- A clear description of the problem
+- A suggestion for how to fix it
+
+### Empty state
+
+When no quality issues are found, you'll see a success message:
+> **No Quality Issues Found**  
+> Your selected fragments follow best practices for identity clarity, rule length, and consistency.
+
+### Why quality matters
+
+Prompt quality directly impacts AI performance:
+- **Vague identities** lead to generic, unfocused responses
+- **Overly long rules** cause attention dilution and inconsistent application
+- **Contradictory rules** confuse the model and produce unpredictable behavior
+- **Too many rules per fragment** makes maintenance and reuse difficult
+
+The linter helps you catch these issues before they affect your results.
+
+---
+
+## Fragment Version History & Diff View
+
+Every time you save changes to a fragment, the previous version is automatically archived
+to a revision history log. You can view, compare, and restore any previous version through
+the **View History** button in the Fragment Editor.
+
+### How it works
+
+**Automatic versioning:**
+- Every PUT request to `/api/fragments/[id]` saves the current version before applying changes
+- Revisions are stored as JSON Lines (`.jsonl`) in `packages/fragments/.registry-history/`
+- One history file per fragment: `[fragment_id].jsonl`
+- Each line contains a complete snapshot: timestamp, full fragment data, optional note
+
+**Viewing history:**
+1. Open any fragment in the Fragment Editor
+2. Click **View History** in the header (clock icon next to fragment name)
+3. Browse all previous versions in the sidebar, newest first
+4. Select a version to view it
+
+**Comparing versions:**
+- **Diff View** (default): Side-by-side comparison of selected version vs. current
+- **Full View**: See the complete YAML content of the selected version
+- Toggle between modes with the "Show diff view" checkbox
+- Diff highlighting:
+  - <span style="color: #bbf7d0; background: #052e16;">Green</span>: Added content
+  - <span style="color: #fca5a5; background: #450a0a;">Red</span>: Removed content
+  - Dark theme optimized for long viewing sessions
+
+**Restoring versions:**
+1. Select a historical version from the sidebar
+2. Click the **RESTORE** button next to the version
+3. Confirm the restoration
+4. The fragment editor loads the historical version
+5. Click **Save Fragment** to make it the current version
+
+### API endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/fragments/[id]/history` | GET | Returns all revisions for a fragment |
+| `/api/fragments/[id]/history/[timestamp]` | GET | Returns a specific revision |
+| `/api/fragments/[id]/history/[timestamp]/restore` | POST | Restores a revision as the current version |
+
+### Storage & retention
+
+- **Format**: JSON Lines (`.jsonl`) — one JSON object per line, append-only
+- **Location**: `packages/fragments/.registry-history/[fragment_id].jsonl`
+- **Cleanup**: History files are deleted when fragments are deleted
+- **Retention**: Currently unlimited — consider implementing a retention policy for production use
+
+### Technical notes
+
+**Dependencies:**
+- `react-diff-viewer-continued` — actively maintained fork for diff rendering
+- Uses `js-tiktoken` from compiler for token-aware viewing
+
+**Concurrent access:**
+- Revision writes are protected by the same write lock as fragment updates
+- Append-only format ensures no data loss from concurrent writes
+
+**Future enhancements:**
+- Configurable retention policy (e.g., keep last 50 versions or 90 days)
+- Compressed storage for older revisions
+- Diff statistics (lines added/removed, token delta)
+- Blame view showing who made which changes
+
+---
+
+## Example Fragments
+
+The included fragment library provides generic examples across all tiers. These serve as
+templates that you can customize for your organization, team, or projects.
+
+### Organization & Department Fragments
 
 | Fragment | Tier | Description |
 |---|---|---|
-| `global_default` | org | Universal constraints, zero hallucination, security rules |
-| `dept_engineering` | department | Engineering software craft standards, architecture principles, and code review culture |
-| `dept_design` | department | UX principles, design systems, and accessibility standards |
+| `global_default` | org | Universal constraints: factual accuracy, no hallucinations, security rules |
+| `dept_engineering` | department | Software craft standards: SOLID, DRY, separation of concerns |
+| `dept_design` | department | UX principles, design systems, and WCAG accessibility standards |
 | `dept_product` | department | User outcomes, requirements clarity, and delivery discipline |
-| `team_backend` | team | API design, services, databases, and performance |
-| `team_frontend` | team | UI/UX, accessibility, and component architecture |
-| `team_platform` | team | Infrastructure, CI/CD, observability, and reliability |
-| `team_data` | team | Pipelines, analytics, schema design, and data quality |
-| `team_qa` | team | Quality assurance, test strategy, and release validation |
-| `team_security` | team | AppSec, threat modeling, and secure code review |
-| `project_irons_in_fire` | project | Irons in Fire — goal tracking and org hierarchy visualization tool |
-| `task_code_review` | task | Perform a thorough code review of a given diff or file |
-| `task_spec_draft` | task | Draft a functional specification document from a feature description |
 
-### Persona fragments
+### Team Fragments
+
+| Fragment | Description |
+|---|---|
+| `team_backend` | API design, services, databases, and performance optimization |
+| `team_frontend` | UI/UX, accessibility, and component architecture |
+| `team_platform` | Infrastructure, CI/CD, observability, and site reliability |
+| `team_data` | Pipelines, analytics, schema design, and data quality |
+| `team_qa` | Quality assurance, test strategy, and release validation |
+| `team_security` | AppSec, threat modeling, and secure code review |
+
+### Project & Task Fragments
+
+| Fragment | Tier | Description |
+|---|---|
+| `project_ecommerce_platform` | project | E-commerce storefront with cart, checkout, and orders |
+| `task_code_review` | task | Perform a thorough code review of a given diff or file |
+| `task_spec_draft` | task | Draft a functional specification from a feature description |
+
+### Persona Fragments
 
 | Fragment | Description |
 |---|---|
@@ -430,3 +785,14 @@ The current fragment library is authored for WealthCounsel engineering. Key frag
 Persona fragments are composable. Selecting multiple stacks their `identity` and `rules`
 contributions — e.g. `persona_senior_engineer` + `persona_concise` produces a senior
 engineer who is also terse.
+
+### Customizing for Your Organization
+
+1. **Replace `global_default`** with your organization's mission, values, and constraints.
+2. **Add department fragments** for your org structure (Sales, Marketing, Legal, etc.).
+3. **Create team fragments** for your specific teams and their conventions.
+4. **Document active projects** as project-tier fragments with technical context.
+5. **Define task fragments** for repeated workflows (incident response, onboarding, etc.).
+
+All fragments are fully editable through the Library Manager UI or by editing YAML files
+directly in `packages/fragments/`.

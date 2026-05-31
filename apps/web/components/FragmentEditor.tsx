@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { RegistryEntry } from "@/lib/types";
+import { FragmentHistoryViewer } from "./FragmentHistoryViewer";
 
 interface TierConfig {
   id: string;
@@ -72,6 +73,7 @@ export function FragmentEditor({
   const [isLoading, setIsLoading] = useState(!!fragmentId);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     if (!fragmentId) {
@@ -135,6 +137,31 @@ export function FragmentEditor({
         ? form.depends_on.filter((d) => d !== id)
         : [...form.depends_on, id]
     );
+
+  const handleRestoreFromHistory = (fragment: any) => {
+    // Update form with restored fragment data
+    setForm({
+      id: fragment.id ?? "",
+      tier: fragment.tier ?? initialTier,
+      version: fragment.meta?.version ?? "1.0.0",
+      description: fragment.meta?.description ?? "",
+      tags: (fragment.meta?.tags ?? []).join(", "),
+      author: fragment.meta?.author ?? "",
+      fabric_source: fragment.meta?.fabric_source ?? "",
+      depends_on: fragment.depends_on ?? [],
+      replace_blocks: fragment.replace_blocks ?? [],
+      identity: fragment.blocks?.identity ?? "",
+      context: fragment.blocks?.context ?? "",
+      steps: fragment.blocks?.steps ?? "",
+      rules: (fragment.blocks?.rules ?? []).map(
+        (r: { key?: string; content: string }) => ({
+          key: r.key ?? "",
+          content: r.content ?? "",
+        })
+      ),
+    });
+    setShowHistory(false);
+  };
 
   const handleSave = async () => {
     setError(null);
@@ -230,6 +257,20 @@ export function FragmentEditor({
           <h3 className="text-sm font-medium text-white">
             {fragmentId ? `Editing: ${fragmentId}` : "New Fragment"}
           </h3>
+          {fragmentId && (
+            <>
+              <span className="text-zinc-700">|</span>
+              <button
+                onClick={() => setShowHistory(true)}
+                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                View History
+              </button>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -450,6 +491,41 @@ export function FragmentEditor({
           )}
         </section>
       </div>
+
+      {/* Fragment History Viewer Modal */}
+      {fragmentId && (
+        <FragmentHistoryViewer
+          fragmentId={fragmentId}
+          currentFragment={{
+            id: form.id,
+            tier: form.tier,
+            meta: {
+              version: form.version,
+              description: form.description,
+              tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+              author: form.author,
+              updated: new Date().toISOString().split("T")[0],
+              fabric_source: form.fabric_source || null,
+            },
+            depends_on: form.depends_on,
+            replace_blocks: form.replace_blocks,
+            blocks: {
+              identity: form.identity || null,
+              context: form.context || null,
+              steps: form.steps || null,
+              rules: form.rules
+                .filter((r) => r.content.trim())
+                .map((r) => ({
+                  ...(r.key.trim() ? { key: r.key.trim() } : {}),
+                  content: r.content.trim(),
+                })),
+            },
+          }}
+          isOpen={showHistory}
+          onClose={() => setShowHistory(false)}
+          onRestore={handleRestoreFromHistory}
+        />
+      )}
     </div>
   );
 }

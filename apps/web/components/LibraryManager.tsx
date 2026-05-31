@@ -375,7 +375,7 @@ export function LibraryManager({ onClose, onRegistryChanged }: Props) {
           <div className="flex items-center gap-3">
             {(saving || importLoading) && (
               <span className="text-xs text-zinc-500 animate-pulse">
-                {importLoading ? "Importing…" : "Saving…"}
+                {importLoading ? "Loading…" : "Saving…"}
               </span>
             )}
             <button

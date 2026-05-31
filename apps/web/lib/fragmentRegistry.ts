@@ -4,11 +4,19 @@ import { parse, stringify } from "yaml";
 import { RegistryEntrySchema, FragmentSchema } from "@prompt-primer/compiler";
 import type { RegistryEntry, Fragment } from "@prompt-primer/compiler";
 
-export const FRAGMENTS_ROOT =
-  process.env.FRAGMENTS_ROOT ?? join(process.cwd(), "../../packages/fragments");
+function getFragmentsRoot(): string {
+  return process.env.FRAGMENTS_ROOT ?? join(process.cwd(), "../../packages/fragments");
+}
 
-const REGISTRY_PATH = join(FRAGMENTS_ROOT, ".registry.json");
-const TIERS_CONFIG_PATH = join(FRAGMENTS_ROOT, "tiers.json");
+export const FRAGMENTS_ROOT = getFragmentsRoot();
+
+function getRegistryPath(): string {
+  return join(getFragmentsRoot(), ".registry.json");
+}
+
+function getTiersConfigPath(): string {
+  return join(getFragmentsRoot(), "tiers.json");
+}
 
 // ---------------------------------------------------------------------------
 // Write mutex — serializes all disk-mutating operations to prevent registry
@@ -49,10 +57,10 @@ async function checkFragmentsRoot(): Promise<void> {
   if (_rootChecked) return;
   _rootChecked = true;
   try {
-    await readdir(FRAGMENTS_ROOT);
+    await readdir(getFragmentsRoot());
   } catch {
     console.warn(
-      `[prompt-primer] FRAGMENTS_ROOT does not exist: "${FRAGMENTS_ROOT}"\n` +
+      `[prompt-primer] FRAGMENTS_ROOT does not exist: "${getFragmentsRoot()}"\n` +
         `  Set the FRAGMENTS_ROOT env var to the correct absolute path, or run\n` +
         `  the dev server from the monorepo root so the relative fallback resolves.`
     );
@@ -81,7 +89,7 @@ export const DEFAULT_TIERS: TierConfig[] = [
 
 export async function loadTiersConfig(): Promise<TiersConfig> {
   try {
-    const raw = await readFile(TIERS_CONFIG_PATH, "utf-8");
+    const raw = await readFile(getTiersConfigPath(), "utf-8");
     const parsed = JSON.parse(raw) as TiersConfig;
     if (!Array.isArray(parsed?.tiers)) return { tiers: DEFAULT_TIERS };
     return parsed;
@@ -94,7 +102,7 @@ export async function loadTiersConfig(): Promise<TiersConfig> {
 }
 
 export async function saveTiersConfig(config: TiersConfig): Promise<void> {
-  await writeFile(TIERS_CONFIG_PATH, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  await writeFile(getTiersConfigPath(), JSON.stringify(config, null, 2) + "\n", "utf-8");
 }
 
 /**
@@ -121,7 +129,7 @@ export async function loadValidatedRegistry(): Promise<{
 
   let raw: string;
   try {
-    raw = await readFile(REGISTRY_PATH, "utf-8");
+    raw = await readFile(getRegistryPath(), "utf-8");
   } catch {
     throw new Error(
       "Fragment registry not found. Run `pnpm generate-registry` to build it."
@@ -185,8 +193,8 @@ export async function regenerateRegistry(): Promise<number> {
   const registry: RegistryEntry[] = [];
   const errors: string[] = [];
 
-  for await (const filePath of walkYaml(FRAGMENTS_ROOT)) {
-    const rel = relative(FRAGMENTS_ROOT, filePath);
+  for await (const filePath of walkYaml(getFragmentsRoot())) {
+    const rel = relative(getFragmentsRoot(), filePath);
     try {
       const raw = await readFile(filePath, "utf-8");
       const parsed = parse(raw);
@@ -220,7 +228,7 @@ export async function regenerateRegistry(): Promise<number> {
     return a.id.localeCompare(b.id);
   });
 
-  await writeFile(REGISTRY_PATH, JSON.stringify(registry, null, 2) + "\n", "utf-8");
+  await writeFile(getRegistryPath(), JSON.stringify(registry, null, 2) + "\n", "utf-8");
 
   // Update cache after full rebuild
   _registryCache = {
@@ -243,7 +251,7 @@ function assertSafeIds(tier: string, id: string) {
 
 function resolveFragmentPath(tier: string, id: string): string {
   assertSafeIds(tier, id);
-  const safeBase = resolve(FRAGMENTS_ROOT);
+  const safeBase = resolve(getFragmentsRoot());
   const abs = resolve(join(safeBase, tier, `${id}.yaml`));
   if (!abs.startsWith(safeBase + sep)) throw new Error("Path traversal rejected");
   return abs;
@@ -259,7 +267,7 @@ export async function getFragmentById(id: string): Promise<Fragment | null> {
   }
   if (!entry) return null;
 
-  const safeBase = resolve(FRAGMENTS_ROOT);
+  const safeBase = resolve(getFragmentsRoot());
   const absPath = resolve(join(safeBase, entry.path));
   if (!absPath.startsWith(safeBase + sep)) return null;
 
@@ -287,7 +295,7 @@ export async function saveFragment(
   const newRelPath = join(tier, `${id}.yaml`);
 
   if (previousPath && previousPath !== newRelPath) {
-    const safeBase = resolve(FRAGMENTS_ROOT);
+    const safeBase = resolve(getFragmentsRoot());
     const oldAbs = resolve(join(safeBase, previousPath));
     if (oldAbs.startsWith(safeBase + sep)) {
       await unlink(oldAbs).catch(() => undefined);
@@ -321,7 +329,7 @@ export async function deleteFragment(id: string): Promise<void> {
   }
   if (!entry) throw new Error(`Fragment "${id}" not found`);
 
-  const safeBase = resolve(FRAGMENTS_ROOT);
+  const safeBase = resolve(getFragmentsRoot());
   const absPath = resolve(join(safeBase, entry.path));
   if (!absPath.startsWith(safeBase + sep)) throw new Error("Path traversal rejected");
 
@@ -349,7 +357,7 @@ export async function saveFragmentAndUpdateRegistry(
   // Read raw registry from disk (cache is null after invalidation)
   let rawEntries: RegistryEntry[] = [];
   try {
-    const raw = await readFile(REGISTRY_PATH, "utf-8");
+    const raw = await readFile(getRegistryPath(), "utf-8");
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
       for (const item of parsed as unknown[]) {
@@ -393,7 +401,7 @@ export async function saveFragmentAndUpdateRegistry(
     return a.id.localeCompare(b.id);
   });
 
-  await writeFile(REGISTRY_PATH, JSON.stringify(filtered, null, 2) + "\n", "utf-8");
+  await writeFile(getRegistryPath(), JSON.stringify(filtered, null, 2) + "\n", "utf-8");
 
   // Update cache directly — next read skips disk
   _registryCache = {
@@ -412,7 +420,7 @@ export async function deleteFragmentAndUpdateRegistry(id: string): Promise<void>
 
   let rawEntries: RegistryEntry[] = [];
   try {
-    const raw = await readFile(REGISTRY_PATH, "utf-8");
+    const raw = await readFile(getRegistryPath(), "utf-8");
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) rawEntries = parsed as RegistryEntry[];
   } catch {
@@ -421,7 +429,7 @@ export async function deleteFragmentAndUpdateRegistry(id: string): Promise<void>
   }
 
   const filtered = rawEntries.filter((e) => e.id !== id);
-  await writeFile(REGISTRY_PATH, JSON.stringify(filtered, null, 2) + "\n", "utf-8");
+  await writeFile(getRegistryPath(), JSON.stringify(filtered, null, 2) + "\n", "utf-8");
 
   _registryCache = {
     entries: filtered,
@@ -431,7 +439,7 @@ export async function deleteFragmentAndUpdateRegistry(id: string): Promise<void>
 
 export async function createTierDirectory(tierId: string): Promise<void> {
   if (!SAFE_ID_RE.test(tierId)) throw new Error(`Invalid tier id: "${tierId}"`);
-  const safeBase = resolve(FRAGMENTS_ROOT);
+  const safeBase = resolve(getFragmentsRoot());
   const tierPath = resolve(join(safeBase, tierId));
   if (!tierPath.startsWith(safeBase + sep)) throw new Error("Path traversal rejected");
   await mkdir(tierPath, { recursive: true });

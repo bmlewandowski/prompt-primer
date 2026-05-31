@@ -2,27 +2,15 @@
   "tiers": [
     {
       "id": "org",
-      "label": "Organization"
-    },
-    {
-      "id": "department",
-      "label": "Departments"
+      "label": "Org"
     },
     {
       "id": "team",
-      "label": "Teams"
-    },
-    {
-      "id": "project",
-      "label": "Projects"
-    },
-    {
-      "id": "persona",
-      "label": "Personas"
+      "label": "Team"
     },
     {
       "id": "task",
-      "label": "Tasks"
+      "label": "Task"
     }
   ]
 }

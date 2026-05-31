@@ -1,0 +1,22 @@
+{
+  "id": "product-team",
+  "name": "Product & Design Team",
+  "description": "Product management and design-focused preset with UX, requirements, and user research",
+  "tiers": [
+    { "id": "org", "label": "Organization" },
+    { "id": "department", "label": "Departments" },
+    { "id": "team", "label": "Teams" },
+    { "id": "project", "label": "Projects" },
+    { "id": "persona", "label": "Personas" },
+    { "id": "task", "label": "Tasks" }
+  ],
+  "fragments": [
+    "org/global_default.yaml",
+    "department/design.yaml",
+    "department/product.yaml",
+    "team/frontend.yaml",
+    "persona/persona_mentor.yaml",
+    "persona/persona_concise.yaml",
+    "task/custom/spec_draft.yaml"
+  ]
+}

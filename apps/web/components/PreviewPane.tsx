@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import type { CompileResult } from "@/lib/types";
+import type { CompileResult, LintWarning } from "@/lib/types";
 
 interface Props {
-  result: CompileResult | null;
+  result: (CompileResult & { lintWarnings?: LintWarning[] }) | null;
   isLoading: boolean;
   previewError?: string | null;
 }
 
-type OutputTab = "markdown" | "openai" | "manifest";
+type OutputTab = "markdown" | "openai" | "manifest" | "quality";
 
 function copyToClipboard(text: string) {
   if (navigator.clipboard) {
@@ -57,10 +57,12 @@ export function PreviewPane({ result, isLoading, previewError }: Props) {
     { id: "markdown", label: "Prompt Text", title: "Compiled prompt in the selected output format" },
     { id: "openai", label: "OpenAI JSON", title: "{role: system, content: \"…\"} — ready to paste into the OpenAI API" },
     { id: "manifest", label: "Manifest", title: "Compilation metadata: token count, dependencies, conflicts" },
+    { id: "quality", label: "Quality", title: "Fragment quality analysis and linting suggestions" },
   ];
 
   const handleCopy = () => {
     if (!result) return;
+    if (activeTab === "quality") return; // quality tab doesn't support copy
     const text =
       activeTab === "markdown"
         ? result.markdown
@@ -74,6 +76,7 @@ export function PreviewPane({ result, isLoading, previewError }: Props) {
 
   const handleDownload = () => {
     if (!result) return;
+    if (activeTab === "quality") return; // quality tab doesn't support download
     if (activeTab === "markdown") {
       downloadFile(result.markdown, "system-prompt.md", "text/markdown");
     } else if (activeTab === "openai") {
@@ -91,7 +94,7 @@ export function PreviewPane({ result, isLoading, previewError }: Props) {
     }
   };
 
-  const activeContent = result
+  const activeContent = result && activeTab !== "quality"
     ? activeTab === "markdown"
       ? result.markdown
       : JSON.stringify(
@@ -100,6 +103,11 @@ export function PreviewPane({ result, isLoading, previewError }: Props) {
           2
         )
     : "";
+
+  const lintWarnings = result?.lintWarnings || [];
+  const errorCount = lintWarnings.filter((w) => w.severity === "error").length;
+  const warningCount = lintWarnings.filter((w) => w.severity === "warning").length;
+  const infoCount = lintWarnings.filter((w) => w.severity === "info").length;
 
   const hasConflicts =
     (result?.manifest.conflictResolutions.length ?? 0) > 0;
@@ -199,6 +207,99 @@ export function PreviewPane({ result, isLoading, previewError }: Props) {
         {!result && !isLoading && (
           <div className="flex h-full items-center justify-center text-sm text-zinc-600">
             Select fragments to compile a prompt.
+          </div>
+        )}
+
+        {activeTab === "quality" && result && (
+          <div className="h-full overflow-auto p-4">
+            {lintWarnings.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <svg className="w-16 h-16 text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 className="text-lg font-semibold text-white mb-2">No Quality Issues Found</h3>
+                <p className="text-sm text-zinc-400 max-w-md">
+                  Your selected fragments follow best practices for identity clarity, rule length, and consistency.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-4 text-xs pb-3 border-b border-zinc-800">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-white">Quality Analysis</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-zinc-400">
+                    {errorCount > 0 && (
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                        {errorCount} error{errorCount !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {warningCount > 0 && (
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                        {warningCount} warning{warningCount !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {infoCount > 0 && (
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                        {infoCount} info
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {lintWarnings.map((warning, idx) => {
+                  const bgColor =
+                    warning.severity === "error"
+                      ? "bg-red-900/20 border-red-700/50"
+                      : warning.severity === "warning"
+                        ? "bg-amber-900/20 border-amber-700/50"
+                        : "bg-blue-900/20 border-blue-700/50";
+                  const textColor =
+                    warning.severity === "error"
+                      ? "text-red-300"
+                      : warning.severity === "warning"
+                        ? "text-amber-300"
+                        : "text-blue-300";
+                  const badgeColor =
+                    warning.severity === "error"
+                      ? "bg-red-600"
+                      : warning.severity === "warning"
+                        ? "bg-amber-600"
+                        : "bg-blue-600";
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`rounded-md border ${bgColor} p-3 text-xs ${textColor}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className={`inline-block ${badgeColor} text-white px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase shrink-0`}>
+                          {warning.severity}
+                        </span>
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <span className="font-mono text-white">{warning.fragmentId}</span>
+                              <span className="text-zinc-500 mx-2">•</span>
+                              <span className="text-zinc-400 capitalize">{warning.category}</span>
+                            </div>
+                          </div>
+                          <p className="text-white font-medium">{warning.message}</p>
+                          {warning.suggestion && (
+                            <p className="text-zinc-300 mt-2 pl-3 border-l-2 border-zinc-700">
+                              <span className="font-semibold">Suggestion:</span> {warning.suggestion}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

@@ -58,6 +58,8 @@ export { countTokens } from "./tokenizer.js";
 export { renderMarkdown, renderXml, renderProse, renderJson, renderChatML, renderWithFormat, renderOpenAIMessage } from "./renderer.js";
 export { loadFragment, loadFragments, FragmentLoadError } from "./loader.js";
 export { mergeFragments } from "./merger.js";
+export { lintFragments } from "./linter.js";
+export type { LintWarning } from "./linter.js";
 export type {
   Fragment,
   FragmentMeta,
