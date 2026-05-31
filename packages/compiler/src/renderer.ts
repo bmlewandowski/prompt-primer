@@ -128,6 +128,8 @@ export function renderWithFormat(
   format: OutputFormat = "fabric"
 ): string {
   switch (format) {
+    case "fabric":
+      return renderMarkdown(blocks);
     case "xml":
       return renderXml(blocks);
     case "prose":
@@ -136,8 +138,11 @@ export function renderWithFormat(
       return renderJson(blocks);
     case "chatml":
       return renderChatML(blocks);
-    default:
+    default: {
+      const _exhaustive: never = format;
+      void _exhaustive;
       return renderMarkdown(blocks);
+    }
   }
 }
 

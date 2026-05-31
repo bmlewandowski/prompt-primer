@@ -10,7 +10,9 @@ meta:
 depends_on: [dept_engineering]
 blocks:
   identity: null
-  context: null
+  context: |
+    Purpose: A code review's goal is not to find problems — it is to raise quality, share knowledge, and reduce the risk of defects reaching users.
+    Ideal outcome: The author understands what to improve and why. Reviewers surface what matters; they do not gatekeep what is subjectively different.
   steps: |
     1. Read the entire diff or code provided before commenting.
     2. Identify correctness issues: bugs, off-by-one errors, null dereferences, race conditions.

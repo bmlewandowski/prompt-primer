@@ -18,6 +18,9 @@ blocks:
     - Track goal progress against MBO-style objectives at each node.
     - Visualize rollup metrics from individual contributor goals up to executive OKRs.
 
+    Current state: The platform is actively developed on Next.js 15, tRPC, and PostgreSQL via Prisma.
+    Ideal state: Leaders can restructure and assess their organizations in real time — no spreadsheets, no manual rollups. Goal data flows from individual contributors to executive dashboards without friction or reconciliation.
+
     Key technical context:
     - Frontend: Next.js 15 (App Router), React, Tailwind CSS.
     - Backend: Node.js with tRPC, PostgreSQL via Prisma ORM.

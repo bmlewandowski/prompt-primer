@@ -7,15 +7,55 @@ import { PreviewPane } from "@/components/PreviewPane";
 import { LibraryManager } from "@/components/LibraryManager";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { RegistryEntry, CompileResult, TierConfig } from "@/lib/types";
+import type { HealthIssue } from "@/app/api/fragments/health/route";
 
 const DEFAULT_TOKEN_BUDGET = 8192;
 const DEBOUNCE_MS = 400;
 const STORAGE_KEY = "pp:session";
 
+const FORMAT_OPTIONS: {
+  value: "fabric" | "xml" | "prose" | "json" | "chatml";
+  label: string;
+  description: string;
+  usedBy: string[];
+}[] = [
+  {
+    value: "fabric",
+    label: "Fabric",
+    description: "Markdown H1 headers — # IDENTITY AND PURPOSE, # STEPS, # OUTPUT INSTRUCTIONS.",
+    usedBy: ["Fabric CLI", "Most open-source workflows"],
+  },
+  {
+    value: "xml",
+    label: "XML",
+    description: "Tagged XML sections — <identity_and_purpose>, <steps>… Preferred by Anthropic.",
+    usedBy: ["Claude", "Amazon Bedrock", "Google Gemini"],
+  },
+  {
+    value: "prose",
+    label: "Prose",
+    description: "Plain text with no structural markup. Maximum portability.",
+    usedBy: ["ChatGPT", "Any model", "Chat interfaces"],
+  },
+  {
+    value: "json",
+    label: "JSON",
+    description: "Raw structured JSON. For API integrations and programmatic pipelines.",
+    usedBy: ["OpenAI API", "Azure OpenAI", "Custom integrations"],
+  },
+  {
+    value: "chatml",
+    label: "ChatML",
+    description: "<|im_start|>system tokens — the training format for OpenAI and open models.",
+    usedBy: ["GPT-4", "Mistral", "LLaMA variants", "Ollama"],
+  },
+];
+
 export default function BuilderPage() {
   const [fragments, setFragments] = useState<RegistryEntry[]>([]);
   const [tiers, setTiers] = useState<TierConfig[]>([]);
   const [fragmentsError, setFragmentsError] = useState<string | null>(null);
+  const [healthIssues, setHealthIssues] = useState<HealthIssue[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [result, setResult] = useState<CompileResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,6 +91,12 @@ export default function BuilderPage() {
         if (data?.tiers && Array.isArray(data.tiers)) setTiers(data.tiers);
       })
       .catch(() => {}); // non-fatal
+    fetch("/api/fragments/health")
+      .then(async (res) => {
+        const data = await res.json();
+        if (Array.isArray(data?.issues)) setHealthIssues(data.issues);
+      })
+      .catch(() => {}); // non-fatal
   }, []);
 
   const reloadFragments = useCallback(() => {
@@ -69,6 +115,12 @@ export default function BuilderPage() {
       .then(async (res) => {
         const data = await res.json();
         if (data?.tiers && Array.isArray(data.tiers)) setTiers(data.tiers);
+      })
+      .catch(() => {}); // non-fatal
+    fetch("/api/fragments/health")
+      .then(async (res) => {
+        const data = await res.json();
+        if (Array.isArray(data?.issues)) setHealthIssues(data.issues);
       })
       .catch(() => {}); // non-fatal
   }, []);
@@ -119,8 +171,9 @@ export default function BuilderPage() {
       if (raw) {
         const saved = JSON.parse(raw) as Record<string, unknown>;
         if (typeof saved.tokenBudget === "number") setTokenBudget(saved.tokenBudget);
-        if (typeof saved.outputFormat === "string")
-          setOutputFormat(saved.outputFormat as "fabric" | "xml" | "prose" | "json" | "chatml");
+        const VALID_FORMATS = ["fabric", "xml", "prose", "json", "chatml"] as const;
+        if (VALID_FORMATS.includes(saved.outputFormat as typeof VALID_FORMATS[number]))
+          setOutputFormat(saved.outputFormat as typeof VALID_FORMATS[number]);
         if (Array.isArray(saved.selected)) pendingIdsRef.current = saved.selected as string[];
       }
     } catch {
@@ -228,31 +281,35 @@ export default function BuilderPage() {
 
         {/* Token budget control */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowManager(true)}
-            className="rounded border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
-          >
-            Manage Library
-          </button>
-          <button
-            onClick={handleResetDefaults}
-            className="rounded border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-500 hover:bg-zinc-700 hover:text-zinc-300 transition-colors"
-            title="Reset selection and preferences to defaults"
-          >
-            Reset
-          </button>
           <label className="text-xs text-zinc-500">Format</label>
-          <select
-            value={outputFormat}
-            onChange={(e) => setOutputFormat(e.target.value as "fabric" | "xml" | "prose" | "json" | "chatml")}
-            className="rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          >
-            <option value="fabric">Fabric</option>
-            <option value="xml">XML</option>
-            <option value="prose">Prose</option>
-            <option value="json">JSON</option>
-            <option value="chatml">ChatML</option>
-          </select>
+          <div className="flex rounded border border-zinc-700 bg-zinc-800 overflow-visible">
+            {FORMAT_OPTIONS.map((fmt) => (
+              <div key={fmt.value} className="relative group">
+                <button
+                  onClick={() => setOutputFormat(fmt.value)}
+                  className={`px-2.5 py-1 text-xs transition-colors ${
+                    outputFormat === fmt.value
+                      ? "bg-indigo-600 text-white"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  {fmt.label}
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2.5 z-50 hidden group-hover:block pointer-events-none">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-b-4 border-b-zinc-700" />
+                  <div className="bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-xs text-zinc-300 w-56 shadow-xl">
+                    <div className="font-semibold text-white mb-1">{fmt.label}</div>
+                    <div className="text-zinc-400 mb-2 leading-relaxed">{fmt.description}</div>
+                    <div className="flex flex-wrap gap-1">
+                      {fmt.usedBy.map((name) => (
+                        <span key={name} className="bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5 text-zinc-300 text-[10px]">{name}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
           <label className="text-xs text-zinc-500">Budget</label>
           <select
             value={tokenBudget}
@@ -268,6 +325,28 @@ export default function BuilderPage() {
           <span className="text-xs text-zinc-500">
             {selected.size} fragment{selected.size !== 1 ? "s" : ""} selected
           </span>
+          <div className="w-px h-4 bg-zinc-700 mx-1" />
+          <button
+            onClick={handleResetDefaults}
+            className="rounded border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-500 hover:bg-orange-900/60 hover:border-orange-700 hover:text-orange-300 transition-colors"
+            title="Reset selection and preferences to defaults"
+          >
+            Reset
+          </button>
+          <button
+            onClick={() => setShowManager(true)}
+            className="relative rounded border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:bg-indigo-600 hover:border-indigo-500 hover:text-white transition-colors"
+          >
+            Manage Library
+            {healthIssues.length > 0 && (
+              <span
+                className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-zinc-900"
+                title={`${healthIssues.length} fragment${healthIssues.length !== 1 ? "s" : ""} with validation issues`}
+              >
+                {healthIssues.length}
+              </span>
+            )}
+          </button>
         </div>
       </header>
 

@@ -53,10 +53,10 @@ export function PreviewPane({ result, isLoading, previewError }: Props) {
   const [activeTab, setActiveTab] = useState<OutputTab>("markdown");
   const [copied, setCopied] = useState(false);
 
-  const tabs: { id: OutputTab; label: string }[] = [
-    { id: "markdown", label: "Markdown" },
-    { id: "openai", label: "OpenAI JSON" },
-    { id: "manifest", label: "Manifest" },
+  const tabs: { id: OutputTab; label: string; title: string }[] = [
+    { id: "markdown", label: "Prompt Text", title: "Compiled prompt in the selected output format" },
+    { id: "openai", label: "OpenAI JSON", title: "{role: system, content: \"…\"} — ready to paste into the OpenAI API" },
+    { id: "manifest", label: "Manifest", title: "Compilation metadata: token count, dependencies, conflicts" },
   ];
 
   const handleCopy = () => {
@@ -117,6 +117,7 @@ export function PreviewPane({ result, isLoading, previewError }: Props) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
+              title={tab.title}
               className={`px-3 py-1 text-xs rounded transition-colors ${
                 activeTab === tab.id
                   ? "bg-indigo-600 text-white"

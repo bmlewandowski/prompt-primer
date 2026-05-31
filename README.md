@@ -83,6 +83,82 @@ requiring manual pattern chaining.
 
 ---
 
+## Telos — purpose-first prompt design
+
+This project applies the **Telos framework** from
+[Daniel Miessler's PAI architecture](https://danielmiessler.com/blog/personal-ai-infrastructure).
+Telos (from Greek: *end goal, ultimate purpose*) is the principle that an AI system
+should always operate in service of a clearly-stated purpose. Before choosing which
+fragments to combine, you should be able to answer:
+
+> *Who am I? What am I trying to accomplish? What does success look like?*
+
+That answer belongs in the **`org` tier** — the highest-authority level in the hierarchy.
+Every fragment below it should be understood as a refinement in service of that purpose,
+not an independent configuration.
+
+### Applying Telos to the fragment hierarchy
+
+The six tiers map directly onto the Telos model:
+
+| Tier | Telos role | What to put here |
+|---|---|---|
+| `org` | **Purpose layer** — your mission, ideal state, and foundational constraints | Mission statement, current challenges, principles that never change |
+| `department` | **Domain layer** — the broad field of focus | Engineering craft standards, design principles, domain conventions |
+| `team` | **Context layer** — who you're working with and how | Team-specific patterns, tooling conventions, collaboration norms |
+| `project` | **Current-state layer** — what you're actively building | Project description, goals, architecture decisions, known constraints |
+| `persona` | **Voice layer** — how the AI presents itself | Communication style, expertise depth, tone |
+| `task` | **Action layer** — what you're doing right now | Specific instruction sets, Fabric patterns, task-scoped rules |
+
+The flow from `org` → `task` mirrors the Telos outer loop: **current state → ideal state**.
+The `org` fragment defines your ideal state; each lower tier narrows the context and method
+for reaching it in the current situation.
+
+### The `org` tier is not optional
+
+A compiled prompt without an `org` fragment is context-free — the AI has no grounding in
+purpose, no sense of what success means, and no constraints that transcend the immediate
+task. The `org` tier should always be loaded.
+
+An `org` fragment structured around Telos principles looks like this:
+
+```yaml
+id: global_default
+tier: org
+blocks:
+  identity: |
+    Your mission is to [purpose]. You exist to [ultimate goal], not merely to
+    complete tasks. Every response should advance that mission.
+  context: |
+    Current state: [what is true right now — challenges, constraints, environment].
+    Ideal state: [what success looks like — the destination you are hill-climbing toward].
+  steps: |
+    Operate in service of the mission above. When facing ambiguity, resolve it
+    toward the ideal state. Raise concerns that would move away from it.
+  rules:
+    - key: hallucination
+      content: "Never state something as fact you are not certain of."
+    - key: scope
+      content: "Decline work that conflicts with the stated mission."
+```
+
+### Multiple `org` fragments for different contexts
+
+If you operate in meaningfully different contexts — professional work, personal projects,
+creative writing — you can maintain multiple `org`-tier fragments and select the appropriate
+one when building a prompt:
+
+```
+org/work.yaml      — professional mission and constraints
+org/personal.yaml  — personal goals and ideal state
+org/creative.yaml  — creative work purpose and voice
+```
+
+Only one `org` fragment should be active at a time. If two `org` fragments are selected,
+their `identity` and `context` blocks will be concatenated — almost certainly not what you want.
+
+---
+
 ## Fragment hierarchy
 
 Fragments are organized in six tiers. When compiled, lower tiers extend and override
