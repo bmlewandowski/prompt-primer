@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { CompileResult, LintWarning } from "@/lib/types";
+import { computeDiff } from "@/lib/diff";
 
 interface Props {
   result: (CompileResult & { lintWarnings?: LintWarning[] }) | null;
+  previousResult: (CompileResult & { lintWarnings?: LintWarning[] }) | null;
   isLoading: boolean;
   previewError?: string | null;
 }
@@ -49,9 +51,23 @@ function downloadFile(content: string, filename: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
-export function PreviewPane({ result, isLoading, previewError }: Props) {
+export function PreviewPane({ result, previousResult, isLoading, previewError }: Props) {
   const [activeTab, setActiveTab] = useState<OutputTab>("markdown");
   const [copied, setCopied] = useState(false);
+  const [showDiff, setShowDiff] = useState(true);
+
+  // Compute diff when needed
+  const diffLines = useMemo(() => {
+    if (!result || !previousResult) return null;
+    return computeDiff(previousResult.markdown, result.markdown);
+  }, [result, previousResult]);
+
+  // Reset to diff view whenever we get a new diff
+  useEffect(() => {
+    if (diffLines && diffLines.length > 0) {
+      setShowDiff(true);
+    }
+  }, [diffLines]);
 
   const tabs: { id: OutputTab; label: string; title: string }[] = [
     { id: "markdown", label: "Prompt Text", title: "Compiled prompt in the selected output format" },
@@ -303,7 +319,68 @@ export function PreviewPane({ result, isLoading, previewError }: Props) {
           </div>
         )}
 
-        {activeContent && (
+        {/* Markdown tab with optional diff view */}
+        {activeTab === "markdown" && result && (
+          <>
+            {showDiff && diffLines && diffLines.length > 0 ? (
+              <div 
+                className="h-full overflow-auto cursor-pointer"
+                onClick={(e) => {
+                  // Only dismiss if clicking on text area, not while selecting text
+                  if (window.getSelection()?.toString()) return;
+                  setShowDiff(false);
+                }}
+                title="Click to view normal text"
+              >
+                {/* Diff mode indicator */}
+                <div className="sticky top-0 flex justify-center p-3 pointer-events-none z-10">
+                  <div className="px-4 py-2 rounded-md bg-zinc-800/90 backdrop-blur-sm border border-zinc-700/50 text-zinc-300 text-sm shadow-lg">
+                    showing changes • click to dismiss
+                  </div>
+                </div>
+                <div className="font-mono text-xs leading-relaxed">
+                  {diffLines.map((line, idx) => {
+                    const bgColor =
+                      line.type === "added"
+                        ? "bg-green-900/40"
+                        : line.type === "removed"
+                          ? "bg-red-900/40"
+                          : "";
+                    const textColor =
+                      line.type === "added"
+                        ? "text-green-200"
+                        : line.type === "removed"
+                          ? "text-red-200"
+                          : "text-zinc-300";
+                    const prefix = line.type === "added" ? "+ " : line.type === "removed" ? "- " : "  ";
+                    
+                    return (
+                      <div
+                        key={idx}
+                        className={`px-4 py-0.5 ${bgColor} ${textColor} whitespace-pre-wrap border-l-2 ${
+                          line.type === "added"
+                            ? "border-green-500"
+                            : line.type === "removed"
+                              ? "border-red-500"
+                              : "border-transparent"
+                        }`}
+                      >
+                        <span className="select-none mr-2 inline-block w-4 font-bold">{prefix}</span>
+                        <span>{line.content}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <pre className="h-full overflow-auto p-4 text-sm leading-relaxed text-zinc-200 font-mono whitespace-pre-wrap">
+                {result.markdown}
+              </pre>
+            )}
+          </>
+        )}
+
+        {activeTab !== "markdown" && activeContent && (
           <pre className="h-full overflow-auto p-4 text-sm leading-relaxed text-zinc-200 font-mono whitespace-pre-wrap">
             {activeContent}
           </pre>

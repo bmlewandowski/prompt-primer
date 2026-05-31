@@ -59,8 +59,17 @@ export default function BuilderPage() {
   const [healthIssues, setHealthIssues] = useState<HealthIssue[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [result, setResult] = useState<CompileResult | null>(null);
+  const [previousResult, setPreviousResult] = useState<CompileResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  
+  // Use ref to track current result for diff comparison
+  const currentResultRef = useRef<CompileResult | null>(null);
+  
+  // Update ref whenever result changes
+  useEffect(() => {
+    currentResultRef.current = result;
+  }, [result]);
   const [tokenBudget, setTokenBudget] = useState(DEFAULT_TOKEN_BUDGET);
   const [outputFormat, setOutputFormat] = useState<"fabric" | "xml" | "prose" | "json" | "chatml">("fabric");
   const [showManager, setShowManager] = useState(false);
@@ -115,6 +124,7 @@ export default function BuilderPage() {
         // Clear selection since fragment IDs may have changed
         setSelected(new Set());
         setResult(null);
+        setPreviousResult(null);
       })
       .catch((err) => setFragmentsError(String(err)));
     fetch("/api/tiers")
@@ -137,6 +147,7 @@ export default function BuilderPage() {
       if (debounceRef.current) clearTimeout(debounceRef.current);
 
       if (selectedIds.size === 0) {
+        setPreviousResult(currentResultRef.current);
         setResult(null);
         setIsLoading(false);
         return;
@@ -158,8 +169,10 @@ export default function BuilderPage() {
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error ?? "Compilation failed");
+          setPreviousResult(currentResultRef.current);
           setResult(data);
         } catch (err) {
+          setPreviousResult(currentResultRef.current);
           setResult(null);
           setPreviewError(err instanceof Error ? err.message : "Compilation failed");
         } finally {
@@ -259,6 +272,7 @@ export default function BuilderPage() {
           setTokenBudget(DEFAULT_TOKEN_BUDGET);
           setOutputFormat("fabric");
           setResult(null);
+          setPreviousResult(null);
           reloadFragments();
           // Show preset selector after reset
           setShowPresetSelector(true);
@@ -388,7 +402,7 @@ export default function BuilderPage() {
         <main className="flex flex-1 flex-col gap-4 overflow-hidden p-4">
           <TokenBudget tokenCount={tokenCount} tokenBudget={tokenBudget} />
           <div className="flex-1 overflow-hidden">
-            <PreviewPane result={result} isLoading={isLoading} previewError={previewError} />
+            <PreviewPane result={result} previousResult={previousResult} isLoading={isLoading} previewError={previewError} />
           </div>
         </main>
       </div>
