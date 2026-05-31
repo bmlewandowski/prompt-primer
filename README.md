@@ -16,6 +16,12 @@ The web UI lets you browse the fragment library, select what applies to your con
 preview the compiled output in real time, track token budget, choose output format,
 and manage the entire fragment library without touching the filesystem.
 
+Your selection, token budget, and output format are automatically saved to
+`localStorage` and restored on your next visit. A **Reset** button in the header
+restores the factory-default fragment library (deletes all user-created fragments
+and tiers, rewrites them from `defaults.json`) and clears saved session state.
+A confirmation popup describes the full scope of the action before proceeding.
+
 ---
 
 ## Relationship to Fabric
@@ -117,6 +123,7 @@ apps/
       api/fragments/[id]/ GET/PUT/DELETE — single fragment CRUD
       api/fragments/export/  GET  — download full library as JSON bundle
       api/fragments/import/  POST — import fragments from a JSON bundle
+      api/fragments/reset/   POST — restore factory defaults from defaults.json
       api/tiers/          GET/POST — tier configuration CRUD
     components/
       LibraryManager.tsx  In-app fragment + tier editor (drag-and-drop reorder)
@@ -124,6 +131,7 @@ apps/
       PreviewPane.tsx     Compiled prompt viewer with warnings + manifest tab
       FragmentTree.tsx    Fragment browser / selection tree
       TokenBudget.tsx     Token budget usage bar
+      ConfirmDialog.tsx   Reusable confirmation modal (delete actions + reset)
     lib/
       fragmentRegistry.ts Validated registry loader + path allowlist + write cache
       runCompile.ts       Shared compile handler used by both API routes
@@ -151,6 +159,7 @@ packages/
       validate.ts           Fragment schema validator
     .registry.json        Auto-generated index (do not edit by hand)
     tiers.json            Ordered tier configuration (do not edit by hand)
+    defaults.json         Factory-default snapshot (fragments + tiers) used by reset
 scripts/
   sync-fabric.ts          Fabric pattern import script (with SHA-256 lock)
 ```
@@ -274,6 +283,12 @@ editor:
 - **Export** — downloads the entire fragment library as a JSON bundle
 - **Import** — uploads a JSON bundle (exported from any Prompt Primer instance);
   existing fragments are skipped by default
+
+All destructive operations (fragment delete, tier delete, and factory reset) require
+confirmation through a modal dialog before proceeding. The **Reset** button in the
+main header (outside the Library Manager) calls `POST /api/fragments/reset`, which
+deletes all current YAML files, restores the originals from `defaults.json`, resets
+`tiers.json`, and rebuilds the registry index.
 
 Export format:
 ```json

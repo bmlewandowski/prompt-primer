@@ -5,13 +5,16 @@ import { FragmentTree } from "@/components/FragmentTree";
 import { TokenBudget } from "@/components/TokenBudget";
 import { PreviewPane } from "@/components/PreviewPane";
 import { LibraryManager } from "@/components/LibraryManager";
-import type { RegistryEntry, CompileResult } from "@/lib/types";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import type { RegistryEntry, CompileResult, TierConfig } from "@/lib/types";
 
 const DEFAULT_TOKEN_BUDGET = 8192;
 const DEBOUNCE_MS = 400;
+const STORAGE_KEY = "pp:session";
 
 export default function BuilderPage() {
   const [fragments, setFragments] = useState<RegistryEntry[]>([]);
+  const [tiers, setTiers] = useState<TierConfig[]>([]);
   const [fragmentsError, setFragmentsError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [result, setResult] = useState<CompileResult | null>(null);
@@ -20,9 +23,20 @@ export default function BuilderPage() {
   const [tokenBudget, setTokenBudget] = useState(DEFAULT_TOKEN_BUDGET);
   const [outputFormat, setOutputFormat] = useState<"fabric" | "xml" | "prose" | "json" | "chatml">("fabric");
   const [showManager, setShowManager] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Holds fragment IDs loaded from localStorage until fragments registry is available.
+  const pendingIdsRef = useRef<string[] | null>(null);
+  // Prevents the selection restoration from running more than once.
+  const hasRestoredRef = useRef(false);
+  // Prevents saving defaults to localStorage before prefs have been loaded.
+  const isFirstSaveRef = useRef(true);
 
-  // Load fragment registry on mount
+  // Load fragment registry and tier config on mount
   useEffect(() => {
     fetch("/api/fragments")
       .then(async (res) => {
@@ -31,6 +45,12 @@ export default function BuilderPage() {
         setFragments(data);
       })
       .catch((err) => setFragmentsError(String(err)));
+    fetch("/api/tiers")
+      .then(async (res) => {
+        const data = await res.json();
+        if (data?.tiers && Array.isArray(data.tiers)) setTiers(data.tiers);
+      })
+      .catch(() => {}); // non-fatal
   }, []);
 
   const reloadFragments = useCallback(() => {
@@ -45,6 +65,12 @@ export default function BuilderPage() {
         setResult(null);
       })
       .catch((err) => setFragmentsError(String(err)));
+    fetch("/api/tiers")
+      .then(async (res) => {
+        const data = await res.json();
+        if (data?.tiers && Array.isArray(data.tiers)) setTiers(data.tiers);
+      })
+      .catch(() => {}); // non-fatal
   }, []);
 
   // Debounced preview call whenever selection changes
@@ -86,6 +112,53 @@ export default function BuilderPage() {
     [fragments, tokenBudget, outputFormat]
   );
 
+  // Load saved preferences from localStorage on mount.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as Record<string, unknown>;
+        if (typeof saved.tokenBudget === "number") setTokenBudget(saved.tokenBudget);
+        if (typeof saved.outputFormat === "string")
+          setOutputFormat(saved.outputFormat as "fabric" | "xml" | "prose" | "json" | "chatml");
+        if (Array.isArray(saved.selected)) pendingIdsRef.current = saved.selected as string[];
+      }
+    } catch {
+      // Ignore malformed storage
+    }
+  }, []);
+
+  // Once the fragment registry loads, restore the saved selection.
+  useEffect(() => {
+    if (hasRestoredRef.current || fragments.length === 0 || pendingIdsRef.current === null)
+      return;
+    hasRestoredRef.current = true;
+    const validIds = new Set(fragments.map((f) => f.id));
+    const restored = new Set(pendingIdsRef.current.filter((id) => validIds.has(id)));
+    pendingIdsRef.current = null;
+    if (restored.size > 0) {
+      setSelected(restored);
+      triggerPreview(restored);
+    }
+  }, [fragments, triggerPreview]);
+
+  // Persist preferences to localStorage whenever they change (skip first render
+  // to avoid overwriting stored data before the load effect has applied it).
+  useEffect(() => {
+    if (isFirstSaveRef.current) {
+      isFirstSaveRef.current = false;
+      return;
+    }
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ selected: [...selected], tokenBudget, outputFormat })
+      );
+    } catch {
+      // Ignore quota errors
+    }
+  }, [selected, tokenBudget, outputFormat]);
+
   // Re-compile when the token budget changes without requiring a fragment toggle.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (selected.size > 0) triggerPreview(selected); }, [tokenBudget]);
@@ -107,6 +180,36 @@ export default function BuilderPage() {
     },
     [triggerPreview]
   );
+
+  const handleResetDefaults = () => {
+    setConfirmDialog({
+      title: "Reset to factory defaults?",
+      message:
+        "This will delete all user-created fragments and tiers, and restore the original library. Your saved selection and preferences will also be cleared. This cannot be undone.",
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setIsLoading(true);
+        try {
+          const res = await fetch("/api/fragments/reset", { method: "POST" });
+          if (!res.ok) {
+            const d = await res.json();
+            throw new Error(d.error ?? "Reset failed");
+          }
+          try { localStorage.removeItem(STORAGE_KEY); } catch {}
+          setSelected(new Set());
+          setTokenBudget(DEFAULT_TOKEN_BUDGET);
+          setOutputFormat("fabric");
+          setResult(null);
+          reloadFragments();
+        } catch (err) {
+          // Surface error in the preview area
+          setPreviewError(err instanceof Error ? err.message : "Reset failed");
+        } finally {
+          setIsLoading(false);
+        }
+      },
+    });
+  };
 
   const tokenCount = result?.manifest.tokenCount ?? 0;
 
@@ -130,6 +233,13 @@ export default function BuilderPage() {
             className="rounded border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
           >
             Manage Library
+          </button>
+          <button
+            onClick={handleResetDefaults}
+            className="rounded border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-500 hover:bg-zinc-700 hover:text-zinc-300 transition-colors"
+            title="Reset selection and preferences to defaults"
+          >
+            Reset
           </button>
           <label className="text-xs text-zinc-500">Format</label>
           <select
@@ -182,6 +292,7 @@ export default function BuilderPage() {
               fragments={fragments}
               selected={selected}
               onToggle={handleToggle}
+              tiers={tiers}
             />
           )}
         </aside>
@@ -201,6 +312,14 @@ export default function BuilderPage() {
           onRegistryChanged={reloadFragments}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmDialog !== null}
+        title={confirmDialog?.title ?? ""}
+        message={confirmDialog?.message ?? ""}
+        onConfirm={confirmDialog?.onConfirm ?? (() => {})}
+        onCancel={() => setConfirmDialog(null)}
+      />
     </div>
   );
 }

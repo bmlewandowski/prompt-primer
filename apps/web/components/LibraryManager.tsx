@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { RegistryEntry } from "@/lib/types";
 import { FragmentEditor } from "./FragmentEditor";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 interface TierConfig {
   id: string;
@@ -26,6 +27,12 @@ export function LibraryManager({ onClose, onRegistryChanged }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   // Import / export state
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -168,7 +175,8 @@ export function LibraryManager({ onClose, onRegistryChanged }: Props) {
         });
         if (!putRes.ok) {
           const d = await putRes.json();
-          throw new Error(d.error ?? "Failed to move fragment");
+          const detail = d.details ? ` (${JSON.stringify(d.details)})` : "";
+          throw new Error((d.error ?? "Failed to move fragment") + detail);
         }
         onRegistryChanged();
         await loadData(tierId);
@@ -218,7 +226,7 @@ export function LibraryManager({ onClose, onRegistryChanged }: Props) {
     setRenameValue("");
   };
 
-  const handleDeleteTier = async (tierId: string) => {
+  const handleDeleteTier = (tierId: string) => {
     const tierFrags = fragments.filter((f) => f.tier === tierId);
     if (tierFrags.length > 0) {
       setError(
@@ -226,32 +234,45 @@ export function LibraryManager({ onClose, onRegistryChanged }: Props) {
       );
       return;
     }
-    const newTiers = tiers.filter((t) => t.id !== tierId);
-    await saveTiers(newTiers);
-    if (selectedTierId === tierId) {
-      setSelectedTierId(newTiers[0]?.id ?? null);
-    }
+    setConfirmDialog({
+      title: `Delete tier "${tierId}"?`,
+      message: "This will permanently remove the tier. This cannot be undone.",
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        const newTiers = tiers.filter((t) => t.id !== tierId);
+        await saveTiers(newTiers);
+        if (selectedTierId === tierId) {
+          setSelectedTierId(newTiers[0]?.id ?? null);
+        }
+      },
+    });
   };
 
   // -------------------------------------------------------------------------
   // Fragment CRUD
   // -------------------------------------------------------------------------
-  const handleDeleteFragment = async (fragId: string) => {
-    if (!confirm(`Delete fragment "${fragId}"? This cannot be undone.`)) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/fragments/${fragId}`, { method: "DELETE" });
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.error ?? "Failed to delete fragment");
-      }
-      onRegistryChanged();
-      await loadData(selectedTierId ?? undefined);
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setSaving(false);
-    }
+  const handleDeleteFragment = (fragId: string) => {
+    setConfirmDialog({
+      title: `Delete fragment "${fragId}"?`,
+      message: "This cannot be undone.",
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setSaving(true);
+        try {
+          const res = await fetch(`/api/fragments/${fragId}`, { method: "DELETE" });
+          if (!res.ok) {
+            const d = await res.json();
+            throw new Error(d.error ?? "Failed to delete fragment");
+          }
+          onRegistryChanged();
+          await loadData(selectedTierId ?? undefined);
+        } catch (e) {
+          setError(String(e));
+        } finally {
+          setSaving(false);
+        }
+      },
+    });
   };
 
   const handleEditorSave = async () => {
@@ -749,6 +770,14 @@ export function LibraryManager({ onClose, onRegistryChanged }: Props) {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDialog !== null}
+        title={confirmDialog?.title ?? ""}
+        message={confirmDialog?.message ?? ""}
+        onConfirm={confirmDialog?.onConfirm ?? (() => {})}
+        onCancel={() => setConfirmDialog(null)}
+      />
     </div>
   );
 }

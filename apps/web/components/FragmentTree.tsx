@@ -1,37 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import type { RegistryEntry } from "@/lib/types";
-
-// Mirrors TIER_ORDER in @prompt-primer/compiler/src/types.ts.
-// Kept local because FragmentTree is a client component and the compiler
-// package imports Node.js built-ins (fs, path) that cannot be bundled for
-// the browser. Update both if the tier list ever changes.
-const TIER_ORDER = ["org", "department", "team", "project", "persona", "task"] as const;
-const TIER_LABELS: Record<string, string> = {
-  org: "Organization",
-  department: "Departments",
-  team: "Teams",
-  project: "Projects",
-  persona: "Personas",
-  task: "Tasks",
-};
+import type { RegistryEntry, TierConfig } from "@/lib/types";
 
 interface Props {
   fragments: RegistryEntry[];
   selected: Set<string>;
   onToggle: (fragmentId: string) => void;
+  tiers: TierConfig[];
 }
 
-export function FragmentTree({ fragments, selected, onToggle }: Props) {
+export function FragmentTree({ fragments, selected, onToggle, tiers }: Props) {
   const [search, setSearch] = useState("");
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
-    department: true,
-    team: true,
-    project: true,
-    persona: true,
-    task: true,
-  });
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  // Build ordered tier list: known tiers first (in config order), then any
+  // unknown tiers found in fragments (alphabetically at the end).
+  const knownTierIds = tiers.map((t) => t.id);
+  const tierLabels: Record<string, string> = Object.fromEntries(
+    tiers.map((t) => [t.id, t.label])
+  );
 
   const filtered = search.trim()
     ? fragments.filter(
@@ -42,7 +30,17 @@ export function FragmentTree({ fragments, selected, onToggle }: Props) {
       )
     : fragments;
 
-  const byTier = TIER_ORDER.reduce<Record<string, RegistryEntry[]>>(
+  // All tiers that actually have matching fragments
+  const tiersWithFragments = new Set(filtered.map((f) => f.tier));
+  const unknownTierIds = [...tiersWithFragments]
+    .filter((t) => !knownTierIds.includes(t))
+    .sort();
+  const orderedTiers = [
+    ...knownTierIds.filter((id) => tiersWithFragments.has(id)),
+    ...unknownTierIds,
+  ];
+
+  const byTier = orderedTiers.reduce<Record<string, RegistryEntry[]>>(
     (acc, tier) => {
       acc[tier] = filtered.filter((f) => f.tier === tier);
       return acc;
@@ -64,10 +62,11 @@ export function FragmentTree({ fragments, selected, onToggle }: Props) {
       />
 
       <div className="flex-1 overflow-y-auto space-y-1">
-        {TIER_ORDER.map((tier) => {
+        {orderedTiers.map((tier, tierIndex) => {
           const items = byTier[tier];
-          if (items.length === 0) return null;
-          const isCollapsed = collapsed[tier];
+          if (!items || items.length === 0) return null;
+          // Default: first tier expanded, rest collapsed (unless user has toggled)
+          const isCollapsed = tier in collapsed ? collapsed[tier] : tierIndex > 0;
           const tierHasSelection = items.some((f) => selected.has(f.id));
 
           return (
@@ -80,7 +79,7 @@ export function FragmentTree({ fragments, selected, onToggle }: Props) {
                     : "text-zinc-400"
                 }`}
               >
-                <span>{TIER_LABELS[tier]}</span>
+                <span>{tierLabels[tier] ?? tier}</span>
                 <span className={tierHasSelection ? "text-indigo-500" : "text-zinc-600"}>
                   {isCollapsed ? "▶" : "▼"}
                 </span>
