@@ -15,7 +15,10 @@ async function* walkYaml(dir: string): AsyncGenerator<string> {
   for (const entry of entries) {
     const fullPath = join(dir, entry.name);
     if (entry.isDirectory()) {
-      yield* walkYaml(fullPath);
+      // Skip hidden directories and the scripts/ directory (not fragment content)
+      if (!entry.name.startsWith(".") && entry.name !== "scripts") {
+        yield* walkYaml(fullPath);
+      }
     } else if (entry.isFile() && entry.name.endsWith(".yaml")) {
       yield fullPath;
     }

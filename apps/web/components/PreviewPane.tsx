@@ -105,6 +105,8 @@ export function PreviewPane({ result, isLoading, previewError }: Props) {
     (result?.manifest.conflictResolutions.length ?? 0) > 0;
   const hasMissingDeps =
     (result?.manifest.missingDependencies.length ?? 0) > 0;
+  const hasCircularDeps =
+    (result?.manifest.circularDependencies?.length ?? 0) > 0;
 
   return (
     <div className="flex flex-col h-full gap-2">
@@ -163,6 +165,16 @@ export function PreviewPane({ result, isLoading, previewError }: Props) {
             <span key={d.fragmentId} className="mr-2">
               <code>{d.fragmentId}</code> requires:{" "}
               {d.missingIds.join(", ")}
+            </span>
+          ))}
+        </div>
+      )}
+      {hasCircularDeps && (
+        <div className="rounded-md border border-orange-700/50 bg-orange-900/20 px-3 py-2 text-xs text-orange-300">
+          <strong>Circular dependencies detected:</strong>{" "}
+          {result!.manifest.circularDependencies!.map((c, i) => (
+            <span key={i} className="mr-2">
+              [{c.cycle.join(" → ")} → {c.cycle[0]}]
             </span>
           ))}
         </div>

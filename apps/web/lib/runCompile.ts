@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { compile } from "@prompt-primer/compiler";
 import type { CompileRequest } from "@prompt-primer/compiler";
-import { loadValidatedRegistry, FRAGMENTS_ROOT } from "./fragmentRegistry";
+import { loadValidatedRegistry, loadTiersConfig, FRAGMENTS_ROOT } from "./fragmentRegistry";
 
 /**
  * Shared compile logic used by both /api/compile and /api/preview.
@@ -9,8 +9,14 @@ import { loadValidatedRegistry, FRAGMENTS_ROOT } from "./fragmentRegistry";
  */
 export async function runCompile(params: CompileRequest): Promise<NextResponse> {
   let allowedPaths: Set<string>;
+  let tierOrder: string[] | undefined;
   try {
-    ({ allowedPaths } = await loadValidatedRegistry());
+    const [registry, tiersConfig] = await Promise.all([
+      loadValidatedRegistry(),
+      loadTiersConfig().catch(() => null),
+    ]);
+    ({ allowedPaths } = registry);
+    tierOrder = tiersConfig?.tiers.map((t) => t.id);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 503 });
@@ -25,7 +31,7 @@ export async function runCompile(params: CompileRequest): Promise<NextResponse> 
   }
 
   try {
-    const result = await compile(params, FRAGMENTS_ROOT);
+    const result = await compile(params, FRAGMENTS_ROOT, tierOrder);
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

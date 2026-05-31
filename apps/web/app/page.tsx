@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FragmentTree } from "@/components/FragmentTree";
 import { TokenBudget } from "@/components/TokenBudget";
 import { PreviewPane } from "@/components/PreviewPane";
+import { LibraryManager } from "@/components/LibraryManager";
 import type { RegistryEntry, CompileResult } from "@/lib/types";
 
 const DEFAULT_TOKEN_BUDGET = 8192;
@@ -17,6 +18,8 @@ export default function BuilderPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [tokenBudget, setTokenBudget] = useState(DEFAULT_TOKEN_BUDGET);
+  const [outputFormat, setOutputFormat] = useState<"fabric" | "xml" | "prose" | "json" | "chatml">("fabric");
+  const [showManager, setShowManager] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load fragment registry on mount
@@ -26,6 +29,20 @@ export default function BuilderPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Failed to load fragments");
         setFragments(data);
+      })
+      .catch((err) => setFragmentsError(String(err)));
+  }, []);
+
+  const reloadFragments = useCallback(() => {
+    setFragmentsError(null);
+    fetch("/api/fragments")
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Failed to load fragments");
+        setFragments(data);
+        // Clear selection since fragment IDs may have changed
+        setSelected(new Set());
+        setResult(null);
       })
       .catch((err) => setFragmentsError(String(err)));
   }, []);
@@ -53,7 +70,7 @@ export default function BuilderPage() {
           const res = await fetch("/api/preview", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ fragmentPaths: paths, tokenBudget }),
+            body: JSON.stringify({ fragmentPaths: paths, tokenBudget, outputFormat }),
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error ?? "Compilation failed");
@@ -66,12 +83,14 @@ export default function BuilderPage() {
         }
       }, DEBOUNCE_MS);
     },
-    [fragments, tokenBudget]
+    [fragments, tokenBudget, outputFormat]
   );
 
   // Re-compile when the token budget changes without requiring a fragment toggle.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (selected.size > 0) triggerPreview(selected); }, [tokenBudget]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (selected.size > 0) triggerPreview(selected); }, [outputFormat]);
 
   const handleToggle = useCallback(
     (fragmentId: string) => {
@@ -106,6 +125,24 @@ export default function BuilderPage() {
 
         {/* Token budget control */}
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowManager(true)}
+            className="rounded border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+          >
+            Manage Library
+          </button>
+          <label className="text-xs text-zinc-500">Format</label>
+          <select
+            value={outputFormat}
+            onChange={(e) => setOutputFormat(e.target.value as "fabric" | "xml" | "prose" | "json" | "chatml")}
+            className="rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="fabric">Fabric</option>
+            <option value="xml">XML</option>
+            <option value="prose">Prose</option>
+            <option value="json">JSON</option>
+            <option value="chatml">ChatML</option>
+          </select>
           <label className="text-xs text-zinc-500">Budget</label>
           <select
             value={tokenBudget}
@@ -157,6 +194,13 @@ export default function BuilderPage() {
           </div>
         </main>
       </div>
+
+      {showManager && (
+        <LibraryManager
+          onClose={() => setShowManager(false)}
+          onRegistryChanged={reloadFragments}
+        />
+      )}
     </div>
   );
 }

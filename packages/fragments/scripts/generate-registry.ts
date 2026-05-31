@@ -11,13 +11,34 @@ import type { RegistryEntry } from "@prompt-primer/compiler";
 
 const FRAGMENTS_ROOT = join(import.meta.dirname, "..");
 const REGISTRY_PATH = join(FRAGMENTS_ROOT, ".registry.json");
+const TIERS_CONFIG_PATH = join(FRAGMENTS_ROOT, "tiers.json");
+
+/**
+ * Load tier order from tiers.json if present; fall back to TIER_ORDER.
+ * This keeps the CLI in sync with the web app's runtime tier configuration.
+ */
+async function loadTierOrder(): Promise<string[]> {
+  try {
+    const raw = await readFile(TIERS_CONFIG_PATH, "utf-8");
+    const parsed = JSON.parse(raw) as { tiers?: Array<{ id: string }> };
+    if (Array.isArray(parsed?.tiers) && parsed.tiers.length > 0) {
+      return parsed.tiers.map((t) => t.id);
+    }
+  } catch {
+    // File missing or malformed — fall through to default
+  }
+  return [...TIER_ORDER];
+}
 
 async function* walkYaml(dir: string): AsyncGenerator<string> {
   const entries = await readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = join(dir, entry.name);
     if (entry.isDirectory()) {
-      yield* walkYaml(fullPath);
+      // Skip hidden directories and the scripts/ directory (not fragment content)
+      if (!entry.name.startsWith(".") && entry.name !== "scripts") {
+        yield* walkYaml(fullPath);
+      }
     } else if (entry.isFile() && entry.name.endsWith(".yaml")) {
       yield fullPath;
     }
@@ -25,6 +46,7 @@ async function* walkYaml(dir: string): AsyncGenerator<string> {
 }
 
 async function main() {
+  const tierOrder = await loadTierOrder();
   const registry: RegistryEntry[] = [];
   const errors: string[] = [];
 
@@ -52,15 +74,17 @@ async function main() {
     process.exit(1);
   }
 
-  // Sort by tier priority then alphabetically by id
+  // Sort by tier priority (from tiers.json, or TIER_ORDER fallback) then alphabetically by id.
+  // Unknown tiers sort after all known tiers.
   registry.sort((a, b) => {
-    const tierDiff =
-      TIER_ORDER.indexOf(a.tier as (typeof TIER_ORDER)[number]) -
-      TIER_ORDER.indexOf(b.tier as (typeof TIER_ORDER)[number]);
-    return tierDiff !== 0 ? tierDiff : a.id.localeCompare(b.id);
+    const ai = tierOrder.indexOf(a.tier);
+    const bi = tierOrder.indexOf(b.tier);
+    const ea = ai === -1 ? tierOrder.length : ai;
+    const eb = bi === -1 ? tierOrder.length : bi;
+    return ea !== eb ? ea - eb : a.id.localeCompare(b.id);
   });
 
-  await writeFile(REGISTRY_PATH, JSON.stringify(registry, null, 2), "utf-8");
+  await writeFile(REGISTRY_PATH, JSON.stringify(registry, null, 2) + "\n", "utf-8");
   console.log(
     `Registry written: ${registry.length} fragment(s) → .registry.json`
   );

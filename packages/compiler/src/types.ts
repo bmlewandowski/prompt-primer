@@ -4,7 +4,7 @@ import { z } from "zod";
 // Tier ordering — lower index = higher authority, lower tier wins on override
 // ---------------------------------------------------------------------------
 export const TIER_ORDER = ["org", "department", "team", "project", "persona", "task"] as const;
-export type Tier = (typeof TIER_ORDER)[number];
+export type Tier = string;
 
 // ---------------------------------------------------------------------------
 // Rule entry — unnamed rules are always additive; named rules support override
@@ -18,12 +18,27 @@ export type Rule = z.infer<typeof RuleSchema>;
 // ---------------------------------------------------------------------------
 // Blocks — the structural body of a fragment, maps to Fabric topology headers
 // ---------------------------------------------------------------------------
-export const BlocksSchema = z.object({
-  identity: z.string().nullish(),
-  context: z.string().nullish(),
-  steps: z.string().nullish(),
-  rules: z.array(RuleSchema).default([]),
-});
+export const BlocksSchema = z
+  .object({
+    identity: z.string().nullish(),
+    context: z.string().nullish(),
+    steps: z.string().nullish(),
+    rules: z.array(RuleSchema).default([]),
+  })
+  .superRefine((val, ctx) => {
+    const keys = val.rules.map((r) => r.key).filter((k): k is string => !!k);
+    const seen = new Set<string>();
+    for (const key of keys) {
+      if (seen.has(key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate rule key "${key}" within the same fragment`,
+          path: ["rules"],
+        });
+      }
+      seen.add(key);
+    }
+  });
 export type Blocks = z.infer<typeof BlocksSchema>;
 
 // ---------------------------------------------------------------------------
@@ -37,7 +52,11 @@ export const FragmentMetaSchema = z.object({
   tags: z.array(z.string()).default([]),
   author: z.string().default("unknown"),
   updated: z.string(), // ISO date string
-  fabric_source: z.string().nullable().default(null),
+  fabric_source: z
+    .string()
+    .url("fabric_source must be a valid URL")
+    .nullable()
+    .default(null),
 });
 export type FragmentMeta = z.infer<typeof FragmentMetaSchema>;
 
@@ -51,9 +70,18 @@ export const FragmentSchema = z.object({
       /^[a-z0-9_-]+$/,
       "id must be lowercase alphanumeric with underscores/hyphens"
     ),
-  tier: z.enum(["org", "department", "team", "project", "persona", "task"]),
+  tier: z.string().min(1, "tier cannot be empty"),
   meta: FragmentMetaSchema,
   depends_on: z.array(z.string()).default([]),
+  /**
+   * Optional list of block keys where this fragment's content *replaces*
+   * (rather than appends to) content from higher-priority tiers.
+   * Example: a persona fragment with `replace_blocks: [identity]` will
+   * clear all org/department/team identity content before writing its own.
+   */
+  replace_blocks: z
+    .array(z.enum(["identity", "context", "steps"]))
+    .default([]),
   blocks: BlocksSchema,
 });
 export type Fragment = z.infer<typeof FragmentSchema>;
@@ -63,7 +91,7 @@ export type Fragment = z.infer<typeof FragmentSchema>;
 // ---------------------------------------------------------------------------
 export const RegistryEntrySchema = z.object({
   id: z.string(),
-  tier: z.enum(["org", "department", "team", "project", "persona", "task"]),
+  tier: z.string().min(1),
   path: z.string(), // relative path from fragments root
   meta: FragmentMetaSchema,
   depends_on: z.array(z.string()).default([]),
@@ -81,8 +109,13 @@ export const CompileRequestSchema = z.object({
   encoding: z
     .enum(["cl100k_base", "o200k_base"])
     .default("cl100k_base"),
+  /** Output rendering format. Defaults to Fabric-style Markdown headers. */
+  outputFormat: z
+    .enum(["fabric", "xml", "prose", "json", "chatml"])
+    .default("fabric"),
 });
 export type CompileRequest = z.infer<typeof CompileRequestSchema>;
+export type OutputFormat = "fabric" | "xml" | "prose" | "json" | "chatml";
 
 
 // ---------------------------------------------------------------------------
@@ -109,6 +142,10 @@ export interface CompilationManifest {
   exceedsBudget: boolean;
   conflictResolutions: ConflictResolution[];
   missingDependencies: Array<{ fragmentId: string; missingIds: string[] }>;
+  /** Cycles detected within the selected fragments' depends_on graph. */
+  circularDependencies: Array<{ cycle: string[] }>;
+  /** Format used to render the compiled prompt. */
+  outputFormat: OutputFormat;
 }
 
 // ---------------------------------------------------------------------------

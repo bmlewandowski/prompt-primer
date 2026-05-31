@@ -9,11 +9,12 @@ from a library of reusable fragments. Inspired by and compatible with
 ## What it does
 
 You select fragment files from an organizational hierarchy. The compiler merges them
-into a single, clean system prompt in Fabric-topology Markdown — or an OpenAI-ready
-JSON message — ready to drop into any LLM interface or API call.
+into a single, clean system prompt — in Fabric-topology Markdown, XML, or plain prose
+— ready to drop into any LLM interface or API call.
 
 The web UI lets you browse the fragment library, select what applies to your context,
-preview the compiled output, and track token budget in real time.
+preview the compiled output in real time, track token budget, choose output format,
+and manage the entire fragment library without touching the filesystem.
 
 ---
 
@@ -57,10 +58,15 @@ The script maintains a lock file (`task/fabric/.sync-lock.json`) with SHA-256 ha
 of every imported file. On subsequent syncs, on-disk content is verified against the
 lock before skipping — tampered fragments are automatically re-fetched with a warning.
 
-**3. Output formats match Fabric's two consumption targets**
+**3. Output formats match Fabric and modern LLM consumption patterns**
 
-- `renderMarkdown()` — Fabric-topology Markdown for use with `fabric --pattern` or any LLM
-- `renderOpenAIMessage()` — `{role: "system", content: ...}` for direct API calls
+- `renderMarkdown()` — Fabric-topology Markdown for use with `fabric --pattern` or any LLM  
+- `renderXml()` — XML-tagged sections (`<identity_and_purpose>`, `<context>`, etc.) for Anthropic / Claude  
+- `renderProse()` — Plain text with no structural headers; sections joined with `---`  
+- `renderJson()` — Structured JSON object `{ identity, context, steps, rules }` for programmatic use  
+- `renderChatML()` — `<|im_start|>system\n...<|im_end|>` for open-weight models (Mistral, Qwen, llama.cpp, Ollama)  
+- `renderOpenAIMessage()` — `{role: "system", content: ...}` for direct API calls, respects format  
+- `renderWithFormat(blocks, format)` — Single dispatcher accepting `"fabric"` | `"xml"` | `"prose"` | `"json"` | `"chatml"`
 
 **The core extension beyond Fabric**
 
@@ -89,9 +95,13 @@ Merge behavior:
 - `identity`, `context`, and `steps` blocks are **concatenated** org → task so every
   layer's voice is present in the final prompt.
 - `rules` with a `key` are **overridden** by lower tiers (task beats org). Unnamed rules
-  are always appended.
+  are **appended and deduplicated** — identical content is included only once.
 - Persona fragments are **composable** — select multiple to stack traits (e.g.
   `persona_senior_engineer` + `persona_concise` + `persona_security_reviewer`).
+- A fragment can declare `replace_blocks: [identity]` to **replace** (rather than
+  append to) the accumulated content for those block keys from higher-priority tiers.
+- The compiler **detects circular dependencies** within the selected fragment set and
+  reports them in the manifest (compilation still proceeds).
 
 ---
 
@@ -103,20 +113,30 @@ apps/
     app/
       api/compile/        POST — compile selected fragments (final export)
       api/preview/        POST — live preview (supports empty selection)
-      api/fragments/      GET  — fragment registry for the browser
-    components/           React UI components
+      api/fragments/      GET/POST — fragment registry CRUD
+      api/fragments/[id]/ GET/PUT/DELETE — single fragment CRUD
+      api/fragments/export/  GET  — download full library as JSON bundle
+      api/fragments/import/  POST — import fragments from a JSON bundle
+      api/tiers/          GET/POST — tier configuration CRUD
+    components/
+      LibraryManager.tsx  In-app fragment + tier editor (drag-and-drop reorder)
+      FragmentEditor.tsx  Fragment form with all fields including replace_blocks
+      PreviewPane.tsx     Compiled prompt viewer with warnings + manifest tab
+      FragmentTree.tsx    Fragment browser / selection tree
+      TokenBudget.tsx     Token budget usage bar
     lib/
-      fragmentRegistry.ts Validated registry loader + path allowlist
+      fragmentRegistry.ts Validated registry loader + path allowlist + write cache
       runCompile.ts       Shared compile handler used by both API routes
+      auth.ts             Optional ADMIN_SECRET write-auth check
     proxy.ts              Sliding-window rate limiter (30 req/60s per IP)
 packages/
   compiler/               Pure TypeScript compilation engine
     src/
       types.ts            Zod schemas and TypeScript types
       loader.ts           YAML fragment loader with validation
-      merger.ts           Additive + keyed-override merge logic
+      merger.ts           Additive + keyed-override merge logic + cycle detection
       tokenizer.ts        js-tiktoken token counting
-      renderer.ts         Fabric Markdown + OpenAI JSON renderers
+      renderer.ts         Fabric / XML / prose / JSON / ChatML renderers
   fragments/              YAML fragment library
     org/                  Organization-level fragments
     department/           Department-level fragments
@@ -130,6 +150,7 @@ packages/
       generate-registry.ts  Registry index builder
       validate.ts           Fragment schema validator
     .registry.json        Auto-generated index (do not edit by hand)
+    tiers.json            Ordered tier configuration (do not edit by hand)
 scripts/
   sync-fabric.ts          Fabric pattern import script (with SHA-256 lock)
 ```
@@ -188,6 +209,10 @@ or manually edited registry entry will be rejected at request time.
 sliding-window limiter (30 requests / 60 seconds per IP). For multi-instance
 deployments replace with a Redis-backed strategy.
 
+**Write authentication** — mutating API routes (fragment/tier CRUD, import) check
+for an `Authorization: Bearer <token>` header when `ADMIN_SECRET` is set. Requests
+exceed 100 KB are rejected before parsing.
+
 **Fabric sync integrity** — `sync-fabric` validates pattern names against
 `/^[a-z0-9_-]+$/` before any URL interpolation and stores a SHA-256 hash of each
 imported file. On subsequent runs, on-disk content is verified against the lock.
@@ -222,7 +247,63 @@ blocks:
 ```
 
 The `depends_on` field declares which other fragments this one requires. The compiler
-will report missing dependencies but still compile — it will not silently drop them.
+reports missing dependencies but still compiles. It also detects cycles within the
+selected fragment set and surfaces them as warnings in the Preview pane.
+
+The optional `replace_blocks` field lists block keys (`identity`, `context`, `steps`)
+where this fragment's content should **replace** rather than append to content from
+higher-priority tiers:
+
+```yaml
+replace_blocks: [identity]
+```
+
+Use this when a task or persona fragment should be the sole source of truth for a
+particular block — e.g. a task that defines a completely different identity from org.
+
+---
+
+## Library Manager
+
+Click **Manage Library** in the top-right of the web UI to open the in-app library
+editor:
+
+- **Tiers** — drag to reorder priority, rename, add, or delete
+- **Fragments** — create, edit, and delete fragments; drag a fragment onto a tier to
+  move it
+- **Export** — downloads the entire fragment library as a JSON bundle
+- **Import** — uploads a JSON bundle (exported from any Prompt Primer instance);
+  existing fragments are skipped by default
+
+Export format:
+```json
+{
+  "version": "1",
+  "exportedAt": "2026-05-30T…",
+  "fragmentCount": 14,
+  "fragments": [ … ]
+}
+```
+
+The importer also accepts a raw JSON array of fragment objects.
+
+---
+
+## Output formats
+
+Choose a format from the **Format** dropdown in the header. The selection applies to
+both the live preview and the downloaded/copied output.
+
+| Format | Description | Best for |
+|--------|-------------|----------|
+| `fabric` | Markdown H1 headers (`# IDENTITY AND PURPOSE`, etc.) | General LLM use, Fabric CLI |
+| `xml` | XML-tagged sections (`<identity_and_purpose>`, etc.) | Anthropic / Claude |
+| `prose` | Plain text, sections separated by `---` | Custom post-processing |
+| `json` | Structured object `{ identity, context, steps, rules }` | Programmatic consumption, API wrappers |
+| `chatml` | `<\|im_start\|>system\n...<\|im_end\|>` | Open-weight models: Mistral, Qwen, llama.cpp, Ollama |
+
+The `outputFormat` field is recorded in the compilation manifest so consumers always
+know which format was used.
 
 ---
 
