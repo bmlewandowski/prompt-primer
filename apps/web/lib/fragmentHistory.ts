@@ -32,18 +32,34 @@ export async function appendFragmentHistory(
   fragment: Fragment,
   note?: string
 ): Promise<void> {
+  const historyFile = join(getHistoryRoot(), `${fragmentId}.jsonl`);
+
+  // Ensure directory exists
+  await fs.mkdir(dirname(historyFile), { recursive: true });
+
+  // Guarantee timestamps are strictly increasing — if the new timestamp
+  // collides with the last written entry (can happen in rapid test loops or
+  // sub-millisecond bursts), bump by 1ms to preserve ordering.
+  let timestamp = new Date().toISOString();
+  try {
+    const content = await fs.readFile(historyFile, "utf-8");
+    const lines = content.trim().split("\n").filter(Boolean);
+    if (lines.length > 0) {
+      const lastLine = JSON.parse(lines[lines.length - 1]) as FragmentRevision;
+      if (lastLine.timestamp >= timestamp) {
+        timestamp = new Date(new Date(lastLine.timestamp).getTime() + 1).toISOString();
+      }
+    }
+  } catch {
+    // File doesn't exist yet — current timestamp is fine
+  }
+
   const revision: FragmentRevision = {
-    timestamp: new Date().toISOString(),
+    timestamp,
     fragment,
     note,
   };
 
-  const historyFile = join(getHistoryRoot(), `${fragmentId}.jsonl`);
-  
-  // Ensure directory exists
-  await fs.mkdir(dirname(historyFile), { recursive: true });
-
-  // Append as a single line of JSON
   const line = JSON.stringify(revision) + "\n";
   await fs.appendFile(historyFile, line, "utf-8");
 }
