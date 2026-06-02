@@ -11,7 +11,8 @@
     { "id": "task", "label": "Tasks" }
   ],
   "fragments": [
-    "org/global_default.yaml",
+    "org/org_mission_template.yaml",
+    "org/org_safety_baseline.yaml",
     "department/engineering.yaml",
     "team/data.yaml",
     "team/backend.yaml",
